@@ -2393,7 +2393,7 @@ The following keywords are useful for the tasks with ``ml_type=-1``, where descr
 
 **Example:** typical commands for the task of computing descriptors (e.g. for structural analysis)
 
-.. code-block:: fortran
+.. code-block::
 
    ml_type=-1
    write_desc=.true.
