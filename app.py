@@ -42,17 +42,17 @@ def home():
             body { font-family: Calibri, sans-serif; max-width: 1000px; margin: 2em auto; }
             #chatbox { border: 1px solid #ccc; padding: 1em; height: 400px; overflow-y: auto; }
             #user-input { width: 80%; }
-            #user-input::placeholder {font-size: 18px; }
-            button { width: 18%; ; font-size: 18px; cursor: pointer; }
+            #user-input::placeholder {font-size: 16px; }
+            button { width: 18%; font-size: 16px; cursor: pointer; }
             #user-input, button {
-                font-size: 18px;          /* Larger text */
-                padding: 10px;            /* Same padding for both */
-                height: 50px;             /* Optional: explicitly same height */
+                font-size: 16px;          /* Larger text */
+                padding: 8px;            /* Same padding for both */
+                height: 35px;             /* Optional: explicitly same height */
                 box-sizing: border-box;   /* Include padding in height calculation */
                 vertical-align: middle;   /* Align nicely */
             }
-            .user-msg { color: #414345; margin: 0.5em 0; font-size: 18px;}
-            .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 18px;}
+            .user-msg { color: #414345; margin: 0.5em 0; font-size: 16px;}
+            .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 16px;}
         </style>
     </head>
     <body>
