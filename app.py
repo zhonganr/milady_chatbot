@@ -44,7 +44,7 @@ def home():
             #user-input { width: 80%; }
             button { width: 18%; }
             .user-msg { color: gray; margin: 0.5em 0; }
-            .bot-msg { color: olive; margin: 0.5em 0; }
+            .bot-msg { color: olive; margin: 0.5em 0; white-space: pre-wrap;}
         </style>
     </head>
     <body>
