@@ -58,8 +58,10 @@ def home():
     <body>
         <h1>Ask anything about MiLaDy!</h1>
         <div id="chatbox"></div>
-        <input type="text" id="user-input" placeholder="Type your message..." />
-        <button onclick="sendMessage()">Send</button>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
 
         <script>
             async function sendMessage() {
