@@ -43,7 +43,7 @@ def home():
             #chatbox { border: 1px solid #ccc; padding: 1em; height: 400px; overflow-y: auto; }
             #user-input { width: 80%; }
             #user-input::placeholder {font-size: 16px; }
-            button { width: 18%; font-size: 16px; cursor: pointer; margin-left: 8px;}
+            button { width: 18%; font-size: 16px; cursor: pointer; margin-left: 14px;}
             #user-input, button {
                 font-size: 16px;          /* Larger text */
                 padding: 8px;            /* Same padding for both */
