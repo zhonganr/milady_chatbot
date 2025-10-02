@@ -37,20 +37,20 @@ def home():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>MiLaDy Chatbot</title>
+        <title>Ask anything about MiLaDy!</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 2em auto; }
+            body { font-family: Calibri, sans-serif; max-width: 1000px; margin: 2em auto; }
             #chatbox { border: 1px solid #ccc; padding: 1em; height: 400px; overflow-y: auto; }
             #user-input { width: 80%; }
             button { width: 18%; }
-            .user-msg { color: blue; margin: 0.5em 0; }
-            .bot-msg { color: green; margin: 0.5em 0; }
+            .user-msg { color: gray; margin: 0.5em 0; }
+            .bot-msg { color: olive; margin: 0.5em 0; }
         </style>
     </head>
     <body>
         <h1>MiLaDy Chatbot</h1>
         <div id="chatbox"></div>
-        <input type="text" id="user-input" placeholder="Type a message..." />
+        <input type="text" id="user-input" placeholder="You may want to know: how to set an ACE descriptor?" />
         <button onclick="sendMessage()">Send</button>
 
         <script>

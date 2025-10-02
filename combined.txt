@@ -26,7 +26,7 @@ e.g. as in Ref.
 <https://doi.org/10.1016/j.nimb.2020.09.011>`_ . The relevant files can
 be found in ``examples/compute_desc_only``.
 
-.. code-block:: fortran
+.. code-block::
 
    &input_ml
    debug=.false.
@@ -67,7 +67,7 @@ home-made subroutine solving the least square problem. In order to set a
 different subroutine, see the available settings for ``mld_fit_type``
 in Section `3.1 <#sec:keywords>`__.
 
-.. code-block:: fortran
+.. code-block::
 
    &input_ml
    debug=.false.
@@ -108,7 +108,7 @@ For the models like QNML we recommend setting ``mld_fit_type=4``, which
 uses SVD with rank estimation. Other available settings for
 ``mld_fit_type`` can be found in Section `3.1 <#sec:keywords>`__.
 
-.. code-block:: fortran
+.. code-block::
 
    &input_ml
    debug=.false.
@@ -173,7 +173,7 @@ all of them in ``vacancy.ml``
 
 **1. LML fit** Typical ``ml`` file ``vacancy.ml_01`` file:
 
-.. code-block:: fortran
+.. code-block::
 
    &input_ml               
    debug=.false.           
@@ -202,8 +202,7 @@ using MCD/Mahalanobis distance. You should define the classes that
 define the MCD class and the exponent Please note: ``ml_type=-2`` and
 ``write_kernel_matrix=.true.`` The content of the file ``vacancy.ml_02``
 
-.. code-block:: fortran
-   :emphasize-lines: 5,19-28
+.. code-block::
 
    &input_ml
    debug=.false.
@@ -243,8 +242,7 @@ Let’s look to the ``vacancy.ml_03`` file.
 
 
 
-.. code-block:: fortran
-   :emphasize-lines: 5,20,30-34
+.. code-block::
 
    &input_ml
    debug=.false.
