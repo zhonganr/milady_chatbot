@@ -1,0 +1,2949 @@
+
+
+--- FILE: 01_ex_write.txt ---
+
+
+Here we provide the inputs for some common tasks that involve different
+types of fit, working with single-element and multi-component systems,
+writing descriptors to the files, saving design matrix, etc. The input
+files listed here are also provided in ``examples``.
+
+.. _`ex:write-desc`:
+
+Compute and write descriptors without further fit
+-------------------------------------------------
+
+This section provides an example of input to write atomic descriptors
+into files, without performing further fit (task with ``ml_type=-1``).
+This option is useful for structural analysis based on atomic
+descriptors, as in  `​Nature Comm. 11: 4691 (2020)
+<https://doi.org/10.1038/s41467-020-18282-2>`_
+, visualization of
+atomic systems in the descriptor space, or for using the computed
+descriptors in conjunction with ML models not implemented in ``MiLaDy``,
+e.g. as in Ref. 
+`Messina et al (2020)
+<https://doi.org/10.1016/j.nimb.2020.09.011>`_ . The relevant files can
+be found in ``examples/compute_desc_only``.
+
+.. code-block:: fortran
+
+   &input_ml
+   debug=.false.
+   ml_type=-1                 !set -1 to compute descriptors only
+   write_desc=.true.          !set true to write the files to descDB/
+   desc_forces=.false.        !set true to compute the descriptors of forces
+
+   !Define your system
+   weighted=.false.           !set true for multicomponent systems
+   chemical_elements=" Fe "   !provide the system composition
+   
+   !Descriptor settings
+   r_cut=4.7d0                !set the cutoff distace Rc
+   descriptor_type=9          !set 9 for bispectrum SO4
+   j_max=4.0                  !angular moment for bispectrum SO4
+
+   &end
+
+
+To rescale the descriptor components between within the certain range of
+values, e.g. [0,1], see the option ``rescale=.true.`` in Section
+`3.1 <#sec:keywords>`__.
+
+--- FILE: 02_ex_lmlfe.txt ---
+
+
+.. _`ex:LML-Fe`:
+
+LML fit in bcc Fe
+-----------------
+
+This section provides an example input an input file for performing
+linear ML (LML) fit with AFS descriptors for bcc Fe. The relevant files
+are provided in ``examples/lml_fe_afs``.
+
+We note that in this example, the fit is performed using a default
+home-made subroutine solving the least square problem. In order to set a
+different subroutine, see the available settings for ``mld_fit_type``
+in Section `3.1 <#sec:keywords>`__.
+
+.. code-block:: fortran
+
+   &input_ml
+   debug=.false.
+   !ML model
+   ml_type=0                  !set 0 for the fit using basis functions
+   mld_order=1               !set 1 for linear regression
+   desc_forces=.true.         !set true to fit the forces
+   
+   !Define your system
+   weighted=.false.           !set true for multicomponent systems
+   chemical_elements=" Fe "   !provide the system composition
+   
+   !Descriptor settings
+   r_cut=4.7d0                !set the cutoff distance Rc
+   descriptor_type=4          !4 for AFS
+   afs_type=1                 !1 for standard AFS, 2 for modified AFS
+   n_rbf=10                   !Number of radial channels
+   n_cheb=8                   !Number of Chebyshev polynomials
+   
+   &end
+
+
+
+
+--- FILE: 03_ex_qnmlhea.txt ---
+
+
+.. _`ex:QNML-HAE`:
+
+QNML fit in HEA
+---------------
+
+Here we provide an example of input file to perform quadratic noise ML
+(QNML) fit for Ta-Ti-V-W high entropy alloy (HEA). The relevant files
+are provided in ``examples/qnml_hea_bso4``.
+
+For the models like QNML we recommend setting ``mld_fit_type=4``, which
+uses SVD with rank estimation. Other available settings for
+``mld_fit_type`` can be found in Section `3.1 <#sec:keywords>`__.
+
+.. code-block:: fortran
+
+   &input_ml
+   debug=.false.
+   !ML model
+   ml_type=0                  !set 0 to perform the fit using basis functions
+   mld_order=2               !set 2 for quadratic regression
+   mld_type_quadratic=1       !set 1 for QNML; 2 for conventional QML
+   mld_fit_type=4            !lapack full SVD with rank estimation
+   desc_forces=.true.         !set true to fit the forces
+
+   weighted=.true.            !set true for multicomponent systems
+   fix_no_of_elements=4       !number of chemical species in the system
+   
+   !system composition, ordered as in DB files
+   chemical_elements=" Ta Ti V W "  
+
+   !weights applied for each element. Keep close to 1
+   weight_per_element=" 1.56 0.41 0.44 1.59 "   
+
+   !Descriptor settings
+   r_cut=4.7d0                !set the cutoff distace Rc
+   descriptor_type=9          !set 9 for bispectrum SO4
+   j_max=3.5                  !angular moment for bispectrum SO4
+   &end
+
+
+
+--- FILE: 04_ex_kernel.txt ---
+
+
+.. _`ex:kernel-poly`:
+
+Kernel regression using polynomial kernel
+-----------------------------------------
+
+Here we provide an example of input file to perform kernel noise ML
+(KNML) fit for W. The relevant files are provided in
+``examples/kernel_poly_w_bso4``.
+
+For the models like kernel are performed using ``ml_type=1``. However,
+any kernel fit requires one pre-processing step, which actually are two
+:). Here are listed all three:
+
+#. perfrom a LML fit with the same descriptor that you intend to perform
+   kernel fit: ``ml_type=0``
+
+#. get the representative environements from your
+   databases:``ml_type=-2``. Those atomic environements will define your
+   kernel.
+
+#. perform the kernel fit: ``ml_type=1``.
+
+.. note::
+
+   All these steps should be run in the same directory. Lets take, one by one.
+
+Problem: we want a kernel fit based on BSO4 descriptor, for W.
+
+The input of each step are stored in ``vacancy.ml_01``,
+``vacancy.ml_02`` and ``vacancy.ml_03`` files. At each step please copy
+all of them in ``vacancy.ml``
+
+**1. LML fit** Typical ``ml`` file ``vacancy.ml_01`` file:
+
+.. code-block:: fortran
+
+   &input_ml               
+   debug=.false.           
+                  
+
+   !ML model               
+   ml_type=0               !set 0 to perform the fit using basis functions
+   mld_order=1            !set 1 for linear regression
+   mld_fit_type=4         !lapack full SVD with rank estimation
+   desc_forces=.true.      !set true to fit the forces
+
+   !Define your system
+   fix_no_of_elements=1    !the number of chemical species in the system
+   chemical_elements=" W " !the system composition, ordered as in DB files
+
+   !Descriptor settings
+   r_cut=4.7d0             !set the cutoff distace Rc
+   descriptor_type=9       !set 9 for bispectrum SO4
+   j_max=4.0               !angular moment for bispectrum SO4
+
+   &end
+
+
+**2. Selection of kernel points** The selection in this example is done
+using MCD/Mahalanobis distance. You should define the classes that
+define the MCD class and the exponent Please note: ``ml_type=-2`` and
+``write_kernel_matrix=.true.`` The content of the file ``vacancy.ml_02``
+
+.. code-block:: fortran
+   :emphasize-lines: 5,19-28
+
+   &input_ml
+   debug=.false.
+
+   !ML model               
+   ml_type=-2                 !set -2 to perform kernel selection
+   mld_order=1               !set 1 for linear regression
+   mld_fit_type=4            !lapack full SVD with rank estimation
+   desc_forces=.true.         !set true to fit the forces
+
+   !Define your system
+   fix_no_of_elements=1       !the number of chemical species in the system
+   chemical_elements=" W "    !the system composition, ordered as in DB files
+
+   !Descriptor settings
+   r_cut=4.7d0                !set the cutoff distace Rc
+   descriptor_type=9          !set 9 for bispectrum SO4
+   j_max=4.0                  !angular moment for bispectrum SO4
+
+   !Kernel dump settings   
+   write_kernel_matrix=.true. !write or not the selected kernel.
+   n_pca=3                    !set 3 (default)
+   classes_for_mcd="07 08 13" !classes used for the MCD reference.
+   
+   !Choose the classes more close to the bulk, MD bulk, deformed bulk etc
+   power_mcd=0.05d0           !exponent used for the grid of selction of kernel.
+   np_kernel_ref=1000         !number of proposed points in the MCD class
+   np_kernel_full=4000        !number of points outside the MCD class
+   kernel_dump=2              !set 2 for MCD/MAHALANOBIS
+   &end
+
+**3. kernel fit.**
+
+Just change in previous ml file: ``ml_type=1`` and
+``write_kernel_matrix=.false.`` and set the characteristic of kernel.
+Let’s look to the ``vacancy.ml_03`` file.
+
+
+
+.. code-block:: fortran
+   :emphasize-lines: 5,20,30-34
+
+   &input_ml
+   debug=.false.
+
+   !ML model               
+   ml_type=1                  !set 1 to perform kernel fit
+   mld_order=1               !set 1 for linear regression
+   mld_fit_type=4            !lapack full SVD with rank estimation
+   desc_forces=.true.         !set true to fit the forces
+
+   !Define your system
+   fix_no_of_elements=1       !the number of chemical species in the system
+   chemical_elements=" W "    !the system composition, ordered as in DB files
+
+   !Descriptor settings
+   r_cut=4.7d0                !set the cutoff distace Rc
+   descriptor_type=9          !set 9 for bispectrum SO4
+   j_max=4.0                  !angular moment for bispectrum SO4
+
+   !Kernel dump settings   
+   write_kernel_matrix=.false. !write or not the selected kernel.!set 3 (default)
+   n_pca=3                    !set 3 (default)
+   classes_for_mcd="07 08 13" !classes used for the MCD reference.
+   
+   !Choose the classes more close to the bulk, MD bulk, deformed bulk etc
+   power_mcd=0.05d0           !exponent used for the grid of selction of kernel.
+   np_kernel_ref=1000         !number of proposed points in the MCD class
+   np_kernel_full=4000        !number of points outside the MCD class
+   kernel_dump=3              !set 3 dump by MCD/MAHALANOBIS
+   
+   !Kernel settings
+   kernel_type=4              !set 4 for polynomial kernel.
+   kernel_power=4             !order of polynomial kernel
+   length_kernel=0.05         !hyperparameter, test more!
+   sigma_kernel=0.d0          !hyperparameter, set 0 in milady
+   
+   &end
+
+
+--- FILE: advanced.txt ---
+
+
+.. _`sec:advanced`:
+
+Advanced options
+================
+
+Here we describe some functionality of ``Milady`` for advanced users. In most of the cases the use of these options gives some errors
+because of lack of full documentation. 
+
+.. warning:: 
+   We do not recommend at all the use of these options unless you are a very advanced developper.  
+
+.. option::  iread_ml (integer)
+
+   0 compute on the fly, 1 read from previous run.
+
+   Default is ``0``.
+
+.. option:: isave_ml (integer)
+
+   0 do nothing, 1 write on the HDD and run, 2 MPI and threading.
+
+   Default is ``0``.
+
+.. option::  kcross (logical)
+
+   Default is ``.false.``.
+
+.. option::  marginal_likelihood (logical)
+
+   Default is ``.false.``.
+
+.. option::  sparsification (logical)
+
+   Default is ``.false.``.
+
+.. option::  n_kcross (integer)
+
+   Default is ``0``.
+
+.. option::  target_type (integer)
+
+   1 - energy, 2 - force.
+
+   Default is ``1``.
+
+.. option::  force_comp (integer)
+
+   1 - x component of forces, 2 - y
+   component of forces, 3 - z component of forces.
+
+   Default is ``1``.
+
+.. option::  toy_model (logical)
+
+   Type of the database:
+
+   #. ``toy_model=.true.`` Database is generated using an analytical
+      function on which is applied some noise (:math:`L` being a
+      parameter and D the dimensionality of one point of the data):
+
+      .. math::
+
+         f(\mathbf{x}, L) =
+                         \begin{cases}
+                          \sin \left( \frac{2 \pi x_1 }{L} \right) & \text{if } \mathbf{x} \in  \mathbb{R}^1 \\
+                          \sin \left( \frac{2 \pi x_1 }{L} \right)  +
+                           \cos \left( \frac{2 \pi x_2 }{L} \right)  & \text{if }  \mathbf{x} \in  \mathbb{R}^2 \\
+                            \sin \left( \frac{2 \pi x_1 }{L} \right)  +
+                            \cos \left( \frac{2 \pi x_2 }{L} \right) +
+                            \sum_{i=3}^D \exp{ \frac{1}{2 L} \left(x_i-\frac{L}{i-2} \right)^2 } & \text{if }  \mathbf{x} \in  \mathbb{R}^D, \text{with D $\ge$ 3}  \\
+                         \end{cases}
+                       \nonumber
+
+   #. ``toy_model=.false.`` Database was already computed. In order to
+      manage the database input please read the section
+      `4 <#sec:odatafiles>`__.
+
+   Default is ``.false.``
+
+.. option:: build_subdata (logical)
+
+   Build a sub database from the whole database.
+
+   Default ``.false.``.
+
+.. option::  pref (character(len=2))
+
+   The prefix of subdatabase name.
+
+   Default ``"00"``.
+
+.. option::  nd_data (integer)
+
+   Number of ``mlposcar`` files included in
+   the repository from which the database is extracted.
+
+   Default ``0``.
+
+.. option:: ns_data (integer)
+
+   How many mlposcar files are used in order to build the database.
+
+   Default ``100``.
+
+.. option::  i_begin (integer)
+
+   Start to read poscar from ``i_begin+1``.
+
+   Default ``i_begin=0``.
+
+.. option::  kelem (integer)
+
+   Random selection of ``ns_data``.
+   Subset of ``kelem`` elements of database
+
+   Default 100.
+
+.. option::  path (character(len=60)),
+
+   Path to the database where the poscar are located.
+
+   Default ``"/home/marinica/test_ml/data/"``.
+
+.. option::  dim_data (integer)
+
+   Number of elements of the database. This
+   variable is extrenal (imposed by the user) only in the case
+   ``toy_model=.true.``. Otherwise, this variable is an internal
+   variable that depends on the design of the database (i.e. the file
+   ``db_file.in``
+
+   Default ``100``.
+
+.. option::  n_frac (real)
+
+   Fraction of database used for testing ( ``dim_data_test = dim_data * n`` )
+   and ``1.0-n_frac`` fraction is used for trainning
+   (``dim_data_train``). ::math`0.0 \le n_frac \le 1.0`.
+   Set 0 for no prediction. Other possibility to
+   split the database in train and test is given by the desing of the
+   database.
+
+   Default ``0.d0``.
+
+
+
+
+--- FILE: database.txt ---
+
+Databases
+#########
+
+.. _`sec:database`:
+
+Database manipulation
+=====================
+
+.. option::  db_file (character(len=80))
+
+   The file that design the database
+   chosen for the potential fitting. each line has the syntax: ``class KLM number_of_files number_of_selected_files``
+
+   Default ``"db_model_in"``
+
+.. option::  db_path (character(len=60))
+
+   Path to the database where the
+   poscar are located. With the default value you should have `` poscar`` files in 
+   ``DB`` directory  
+
+   Default ``"./DB/"``.
+
+.. option::  selection_type (integer)
+
+   Inside each ``class`` and ``KLM`` subdatabase mentioned in ``db_file``
+
+   #. ``1`` selects first "ns" elements of the database;
+
+   #. ``2`` selects last "ns" elements of the database;
+
+   #. | ``3`` selects randomly "ns" subsets of "kelem" elements of the
+        database
+
+   #. | ``4`` selects first "ns" subsets of "kelem" elements of the
+        database from a starting configuration defined in the
+        ``db_file``
+
+   | In the case of new type of input, using ``db_file`` "ns" is given
+     by ``number_of_selected_files`` inside ``class``.\ ``KLM``
+   | Default ``3``.
+
+.. option::  seed (integer)
+
+   Seed for random number generator.
+
+   Default ``11``.
+
+.. option::  iread_energy (integer)
+
+   This option fixes which energy from the database is taken as target by ``MiLaDy``. 
+   Each ``.poscar`` format has in the first line  three energies, as it is described in Section :ref:`Database files<db-format>`. A value between 1, 2 and 3
+   choose the first, second or third energy, respectively.
+
+   Default ``2``.
+
+.. option::  ref_energy_per_element (character(len=80))
+
+   This option fixes the reference energy of each species. 
+   These reference energies are useful when we intend to apply a shift of the total energy 
+   read by ``MiLaDy`` from ``.poscar``. 
+
+   This change of reference can be very useful in many situation, from which we exemplify two: 
+   (i) when we want to lower the absolute value of the DFT total energy by a rigid shift towards 
+   lower numbers (some ab-intio codes provide large numbers for total energy). Those large numbers 
+   can induce numerical instabilities in the fitting procedure. (ii) for physical consideration 
+   we want to have clean atomization energies for molecules and for the atoms separated at the infinite 
+   the energy is zero. There are many others situation when this rigid shif can be useful. 
+
+   How ot works? Let's take the case of a target energy :math:`E_{\textrm{DFT}}` read by ``MiLaDy`` using the 
+   option ``iread_energy``. We supose that this system has N atoms distributed over S species and each 
+   species has :math:`n_1`, :math:`n_2`, :math:`\ldots`, :math:`n_S` atoms. 
+   If for each species we have a reference energy  :math:`E_{\textrm{ref},s}` with :math:`s=1, \ldots, S`. Then the 
+   ``MiLaDy`` target energy will be given by equation: 
+   
+   .. math::
+      E_{\textrm{target}} = E_{\textrm{DFT}} - \sum_{s=1,S} n_s E_{\textrm{ref},s}  
+   
+   The number of values provided by ``ref_energy_per_element`` should be equal to ``fix_no_of_elements`` (this option is described in 
+   :ref:`Atomic systems <sec:atomicsys>`) otherwise ``MiLaDy`` ends into a fatal error.  For example 
+   ``ref_energy_per_element="" -3.d0 2.12d0 -1.d0"`` provide three 
+   values ``-3.d0``, ``2.12d0`` and ``1.d0`` for the species 1, 2 and 3, respectively.   
+
+
+   Default ``ref_energy_per_element="0.d0"``.
+
+
+Database files
+==============
+
+.. _db-format:
+
+Database file format
+--------------------
+
+Database files for MiLaDy are stored in the ``.poscar`` format.
+
+Besides a standard information (cell vectors, number of atoms, atomic
+coordinates and forces) that is usually included in ``.poscar``, our
+databases files also contain explicit information about chemical
+compound and energy of the system in the first line as well as the
+stress tensor (independent six components in the :math:`\sigma_{xx}`,
+:math:`\sigma_{yy}`, :math:`\sigma_{zz}`, :math:`\sigma_{yz}`,
+:math:`\sigma_{xz}`, :math:`\sigma_{xy}` order, as provided by VASP),
+and ISPIN tag in the end of the file.
+
+The energies, forces and stress
+are provided in eV, eV/Å and eV/Å\ :math:`^{3}`, respectively.
+
+An
+example of a typical database ``.poscar`` file is reported below.
+
+.. code-block:: python
+   :linenos:
+
+   111 1 Fe 26 -15.7255500 0.7884238 0 # EFS-tag n element mass E_1 E_2 E_3
+   1.00000000 # unit = 1Å
+   2.63475324 0.00000000 0.00000000 # cell vectors
+   0.00000000 2.63475324 0.00000000
+   0.00000000 0.00000000 2.63475324
+   2 # number of atoms
+   Cartesian
+   0.00000000 0.00000000 0.00000000 # atomic positions
+   1.31737662 1.31737662 1.31737662
+   # empty line
+   0.00000000 0.00000000 0.00000000 # forces
+   0.00000000 0.00000000 0.00000000
+   # empty line
+   -0.42315918 -0.42315918 -0.42315918 0 0 0 # stress
+   # empty line
+   2 # ISPIN tag: 2 - magnetic, 1 - non magnetic; 0 - not known
+
+
+The first line of this file (treated as a comment by VASP) indicates
+that the file contains information about energy (``E=1`` in ``EFS``),
+forces (``F=1`` in ``EFS``), stress (``S=1`` in ``EFS``); that the
+system is built by ``1`` chemical element which is ``Fe`` with atomic
+mass ``26``, total energy of the system is ``-15.7255500``, target
+energy value for training (:math:`E^{tot}-E^{ref}_{1}`) is ``0.7884238``
+and the alternative target value (:math:`E^{tot}-E^{ref}_{2}`) is ``0``.
+In this example, the reference energy :math:`E^{ref}_{1}` is a total
+energy of a perfect crystal.
+
+For the systems which contain more than one chemical element (alloys,
+oxides *etc.*), the structure of the first and sixths lines will
+slightly change. For instance, the first line for Fe\ :math:`_{3}`\ C
+cementite with known energies and forces (but no stress tensor) is:
+
+
+.. code-block:: python
+
+   110 2 Fe 26 C 12 -15.7255500 0.7884238 0
+
+and the sixth line for the 4-atom Fe\ :math:`_{3}`\ C system is
+
+.. code-block:: python
+
+   3 1
+
+The database files of this format can be directly used as input
+configurations for calculations in VASP and structure visualization in
+OVITO. Simple renaming of the the .poscar files to POSCAR allows also
+their visualization in VESTA.
+
+**The case of the calculations for the descritors and no derivatives
+i.e.** ``desc_forces=.false.`` In this particular case only the
+positions of atoms and the box informations are read. Any information
+about forces , spin etc is ignored and is not complusory.
+
+**Other file formats.** Some of the files can be stored in binary format
+``.traj``, generated and read by `Atomic Simulation
+Environment <https://wiki.fysik.dtu.dk/ase/>`__ (ASE). The data can be
+then extracted to the database ``.poscar`` format with a python script
+``extract\_traj.py`` that is provided together with ``.traj`` files.
+Conversion of the ``.poscar`` DB files (compatible with MiLaDy) into
+extended ``.xyz`` format can be performed using ``DB\_poscar2xyz.py``.
+The inverse conversion from ``.xyz`` to ``.poscar`` can be done with
+``DB\_xyz2poscar.py``.
+
+.. _`sec:dbnames`:
+
+Database file names
+-------------------
+
+The database files for MiLaDy are generally named as
+``CCKLMXXXXXX.poscar``. In this notation, the *class* ``CC`` is defined
+by a number that can vary from 01 to 99. This part of the file name
+indicates a physical property that can be derived from this files
+(*e.g.*, elasticity, point defects, *etc.*). The class is directly
+linked to the characteristics of the system that should be fit
+(E=energy, F=forces, S=stress). Thus, for example for the classes ``01``
+and ``02`` corresponding to equations of state (EOS) and elasticity, the
+energies and stress ES represent important parameters to fit (forces are
+equal zero in this case), while for the class ``04`` with Generalized
+Stacking Faults (GSF), only energies are of our interest.
+
+The ``KLM`` notation in the file names describes a *type* of the system,
+which includes composition, structure, and a source of the database. The
+first index ``K`` indicates a material (composition + structure). For
+instance, bcc Fe corresponds to ``K``\ =1, hcp Fe to ``K``\ =2 and bcc W
+to ``K``\ =3, *etc.*
+
+.. _`sec:db-model`:
+
+Input file db\ :math:`\_`\ model.in
+-----------------------------------
+
+An input file ``db_model.in`` provides a detailed summary of the
+database which will be used to fit a ML potential in MiLaDy. Each line
+in the file stands for the categories of the database with different
+class ``CC`` and ``KLM``. After providing the relevant ``CC`` and
+``KLM`` attributes, one should indicate the total number of files in the
+database belonging to this category and how many of them should be used
+for training of the potential. The rest of the files will be used for
+the test.
+
+For each category listed in the ``db_model.in``, one can independently
+define its ``EFS`` tag in the form of ``T`` or ``F`` standing for
+energies, forces and stress respectively. The final EFS fitting scheme
+for a given system will be a superposition of the EFS provided in the
+``db_model.in`` and of the ``EFS``-tag, in the first line of a
+``.poscar`` file (see Section `4.1 <#db-format>`__). For instance, if
+the ``EFS-tag`` in the ``.poscar`` file is ``110`` and ``TFF`` in the
+``db_model.in``, the fit will be performed only for the energies.
+
+The last six numbers in each line define the three ranges:
+:math:`[w^{min}_E, w^{min}_F, w^{min}_S], [w^{max}_E, w^{max}_F, w^{max}_S]`
+within which the regression weights will be varied for energies, forces
+and stress, respectively. The search of optimum regression errors is
+performed using evolutionary algorithm. In the example of the
+``db_model.in`` below, the weights are set to vary between ``1e2`` and
+``1e6`` for energy, ``1e1`` and ``1e3`` for forces and ``1e2`` and
+``1e4`` for stress. Setting everywhere ``1.e0`` will result in a simple
+fit without regression weights.
+
+.. code-block::
+
+   01 120 614 425 T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+   02 110 22  15  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+   02 120 22  15  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+   02 130 22  15  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+
+
+.. warning::
+
+   For the particular case of the ``selection_type=4`` the above
+   file should provide the first configuration used for the trainning
+   selection. As in the following example, where the first configuration
+   becomes ``10`` for the class ``01`` and ``1`` for all the others, exept
+   the last class for which it is ``2``.
+
+   .. code-block::
+
+      01 120 614 425 10 T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+      02 110 22  15  1  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+      02 120 22  15  1  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+      02 130 22  15  2  T F T 1.e2 1.e1 1.e2 1.e6 1.e2 1.e4
+
+
+Database in descriptor space: writing outputs.
+==============================================
+
+.. option::  write_desc (logical)
+
+   Writing or not the local atomic descriptors. The data will be writen in the  
+   directory ``descDB``. This option write the descriptors for local energy as well for 
+   atomic forces. 
+   In order to write only the descritors of the local atomic environement set 
+   ``desc_forces=.false.``
+
+   Default ``write_desc=.false.``
+.. note::
+
+      However, not all the database is writen. It is writen only the configuration that 
+      are asked in ``db_model.in``   
+
+.. option::  desc_file_format (integer)
+
+   The type of descriptor file, which is written if ``write_desc=.true.``. Depending on the 
+   value of ``desc_file_format``, which can be ``1``, ``2`` or ``3`` the descriptor files written in 
+   ``descDB`` has the extension ``eml``, ``csv`` and ``npz`` respectively.
+
+   - ``1`` The name of files is of the form ``descDB/CC_KLM_XXXXXX.eml`` and the format 
+     is ``nat x dim_desc + 1`` matrix. Where  ``nat`` is the number of atoms in the 
+     corresponding atomic system and ``dim_desc`` the dimension of the descriptor. 
+     The first column of the matrix indicates the atomic id  in the system 
+     (the same id as in the corresponding ``poscar``) and the other ``dim_desc`` columns are the various 
+     components of the descriptor.
+
+   - ``2`` the files will be written in ``csv`` format in  ``descDB/CC_KLM_XXXXXX.csv``. 
+     The shape of the data is same as for option ``1``. 
+
+   - | ``3`` ensures that the binary format ``npz`` is ``descDB/CC_KLM_XXXXXX.npz``. 
+     The shape of the data is the same as for option ``1``. 
+   
+   Default ``desc_file_format=1``
+   
+.. note::
+
+      ``npz`` files are smaller in size with a factor of 10 compared to ``eml`` or ``csv``. However, pay attention that sometimes 
+      there can be problems when you generate the files on one computer then you read on other 
+      computer.  
+
+
+
+
+
+--- FILE: descriptors.txt ---
+
+
+.. _`sec:descriptors`:
+
+Descriptors
+===================
+
+.. option::  r_cut (real)
+
+   The cut-off of the descriptor (in Å).
+
+   Default ``r_cut=5.0``
+
+.. option::  desc_forces (logical)
+
+   Compute or not the force descriptors.
+   Also the writting of the force descriptors is desactivated. Active
+   for all descriptors. In the case ``desc_forces=.false.`` only the
+   positions are read.
+
+   Default ``desc_forces=.true.``
+
+.. option::  descriptor_type (integer)
+
+   Type of descriptor to be used.
+
+   #. ``descriptor_type=1`` G2
+
+   #. ``descriptor_type=2`` G3
+
+   #. ``descriptor_type=3`` Behler
+
+   #. ``descriptor_type=4`` Angular Fourier Series (AFS)
+
+   #. ``descriptor_type=5`` Smooth Overlap of Atomic Positions (SOAP)
+
+   #. ``descriptor_type=6`` Power Spectrum SO3
+
+   #. ``descriptor_type=7`` Bispectrum SO3
+
+   #. ``descriptor_type=8`` Power Spectrum SO4
+
+   #. ``descriptor_type=9`` bispectrum SO4
+
+   #. ``descriptor_type=14`` hybrid G2 + AFS
+
+   #. ``descriptor_type=19`` hybrid G2 + bispectrum SO4
+
+   #. ``descriptor_type=100`` MTP\ :math:`^3` (up to order
+      :math:`M_{\mu,\nu}`, with :math:`\nu \le 3`)
+
+   #. ``descriptor_type=200`` PiP permutationally invariant polynomials
+
+   #. ``descriptor_type=300`` ACE
+
+
+   Default ``1``.
+
+G2
+----
+
+To use G2, set ``descriptor_type=1``.
+
+Parameters
+""""""""""
+
+.. option::  eta_max_g2 (integer)
+
+   The max value of :math:`\eta`. The grid will be taken between :math:`10^{-2}` and this value.
+
+   Default ``eta_max_g2=0.8``
+
+.. option::  n_g2_eta  (integer)
+
+   The grid for :math:`\eta` with the following generatig formulae:
+
+   .. math:: \eta_p = 10^{-2} + \frac{p-1}{\textrm{n_g2_eta}}( \textrm{eta_max_g2}- 10^{-2})
+
+   where :math:`p` range strats to 1 up to ``n_g2_eta``.
+
+   Default ``3``
+
+.. option::  n_g2_rs  (integer)
+
+   The grid for :math:`r_s` with the following generating formulae:
+
+   .. math:: r_s^p = p-1
+
+   where :math:`p` range starts to 1 up to ``n_g2_rs``.
+
+   Default ``1``
+
+
+
+G3
+----
+
+
+To use G3, set ``descriptor_type=2``.
+
+Parameters
+""""""""""
+
+.. option::  n_g3_eta (integer)
+
+   The grid for :math:`\eta` with the following generatig formulae:
+
+   .. math:: \eta_p = 10^{-2} + \frac{p-1}{\textrm{n_g2_eta}}(1 - 10^{-2})
+
+   where :math:`p` range strats to 1 up to ``n_g2_eta``.
+
+   Default ``3``
+
+.. option::  n_g3_lambda (integer)
+
+   the grid for :math:`\lambda` with the following generating formulae:
+
+   .. math:: \lambda_p = -1 + 2(p-1)
+
+   where :math:`p` range starts to 1 up to ``n_g3_lambda``. Is
+   highly recommended the value ``n_g3_lambda``\ :math:`=2` i. e.
+   :math:`\lambda` will have the value :math:`1` and :math:`-1`.
+
+   Default ``2``
+
+.. option::  n_g3_zeta (integer)
+
+   The grid for :math:`\zeta` with the following generating formulae:
+
+   .. math:: \zeta_p = 2^{p-1}
+
+   where :math:`p` range starts to 1 up to ``n_g3_zeta``.
+
+   Default ``2``
+
+Behler
+------
+
+To use Behler, set ``descriptor_type=3``.
+
+Parameters
+""""""""""
+
+
+The parameters of the descriptors are controlled by the options of the case :math:`G2` and :math:`G3`. Additional options are available:
+
+.. option::  strict_behler (logical)
+
+   All the parameters are set-up
+   automatically following one of the Behler’s paper.
+
+   Default ``F``
+
+AFS
+---
+
+To use  AFS, set ``descriptor_type=4``.
+
+Parameters
+""""""""""
+
+The parameters of the descriptors are controlled by the options of the number of radial
+channels and Tchbychev polynomials. There are two types of AFS
+descriptors introduced by the option ``afs_type``.
+
+.. option:: afs_type (integer)
+
+-  ``afs_type=1``: ``integer`` this option activates the orginal AFS
+   published in the PRB paper `\cite{bartok2013}`:
+
+   .. math:: \textrm{AFS}_{n,l}^j = \sum_{i,k} g_n(r_{ji}) g_n(r_{jk}) T_l (\cos{\theta_{ijk}})
+
+   and has the dimension equal to ``n_rbf`` :math:`\times`
+   ``(n_cheb + 1)``. The :math:`g_n` and :math:`T_l` are the radial
+   channels and Tchebychev polynomials, respectivelly.
+
+-  ``afs_type=2``: ``integer`` this option activates a new AFS
+   descriptor with strong coupling between the radial channels:
+
+   .. math:: \textrm{AFS}_{n,n^\prime, l}^j = \sum_{i,k} g_n(r_{ji}) g_{n^{\prime}}(r_{jk}) T_l (\cos{\theta_{ijk}})
+
+   The dimension of this descriptor is equal to ``n_rbf``\ :math:`^2`
+   :math:`\times` ``(n_cheb + 1)``.
+
+   Default ``afs_type = 1``
+
+.. option::  n_rbf (integer)
+
+   The number of radial channels.
+
+   Default ``n_rbf=4``
+
+.. option::  n_cheb (integer)
+
+   The number of Tchebychev polynomials.
+
+   Default ``n_cheb=5``
+
+
+SOAP
+----
+
+To use  SOAP, set ``descriptor_type=5``.
+
+Parameters
+""""""""""
+
+The parameters of the descriptor are controlled by the options of the number of Gaussian
+radial functions ``n_soap`` and maximum of the spherical harmonics
+``l_max``.
+If the ``nspecies_soap`` is set, the number of components
+are, if ``lsoap_diag=.true.``: ``(l_max + 1)`` :math:`\times`
+``n_soap`` :math:`\cdot` ``nspecies_soap``\ :math:`\times`
+(``n_soap`` :math:`\cdot` ``nspecies_soap`` +1)/2, whilst, if
+``lsoap_diag=.false.`` the number of components is much less
+``(l_max + 1)`` :math:`\times` ``n_soap`` :math:`\times`
+``nspecies_soap``\ :math:`\times` (``nspecies_soap`` +1)/2.
+
+.. option::  n_soap (integer)
+
+   The number of Gaussians.
+
+
+   Default ``n_soap=4``
+
+.. option::  l_max (integer)
+
+   The max l of the spherical harmonics.
+
+   Default ``l_max=5``
+
+.. option::  lsoap_diag (logical)
+
+   The SOAP descriptor is diagonal in radial functions.
+
+   Default ``lsoap_diag=.false.``
+
+.. option::  lsoap_lnorm (logical)
+
+   The SOAP descriptor is normalized in each :math:`l`-angular channel by a factor :math:`1/(2l+1)`.
+
+   Default ``lsoap_lnorm=.false.``
+
+.. option::  lsoap_norm (logical)
+
+   The SOAP descriptor is normalized.
+
+   Default ``lsoap_norm=.false.``
+
+.. option::  r_cut_width_soap  (double precision)
+
+   The intermediate regime for the cutoff function.
+
+   Default ``r_cut_width_soap=0.5d0``
+
+Power Spectrum SO3
+------------------
+
+To use  power spectrum SO3, set ``descriptor_type=6``.
+
+
+Parameters
+""""""""""
+
+The parameters of this descriptor are controlled by the
+number of radial functions, ``n_rbf``, and the angular momentum of spherical harmonics ``l_max``.
+This descriptor has two radial function choices given by ``radial_pow_so3`` flag.
+The
+dimension of the descriptor will be: ``n_rbf`` :math:`\times`
+``(l_max + 1)`` if ``radial_pow_so3 = 1`` and ``n_rbf + 1`` :math:`\times`
+``(l_max + 1)`` if ``radial_pow_so3 = 2``
+
+.. option:: radial_pow_so3 (integer)
+
+   The type of radial function. ``radial_pow_so3 = 1`` is the default choice and give the original polynomial radial basis
+   (the same as the default basis of AFS descritor) whilst ``radial_pow_so3 = 2`` gives the radial basis based on Chebyshev polynomials
+   described in refXXX. This option is common and acitve for others two descriptors: Power Spectrum SO3-3body and Bispectrum SO3 descriptors.
+
+   Default ``radial_pow_so3 = 1``
+
+.. option::  n_rbf (integer)
+
+   The number of Gaussian (radial) functions.
+
+   Default ``n_rbf=4``
+
+.. option::  l_max (integer)
+
+   The max values of the angular moment.
+
+   Default ``l_max=4``
+
+The :math:`n_{rbf} \times (1 + l_{\textrm{max}})` or :math:`(n_{rbf} + 1) \times (1 + l_{\textrm{max}})` components of the power
+spectrum SO(3) descriptor of the :math:`j^{th}` atom is written:
+
+.. math::
+
+   p_{nl}^j = \sum_{m=-l_{\textrm{max}}}^{l_{\textrm{max}}} c_{nlm}^{j*}c_{nlm}^j
+            \nonumber
+
+with :math:`n` in the range :math:`0/1` to :math:`n_{rbf}`, whilst
+:math:`l = 0, \ldots l_{max}`. The Wigner coefficients can be
+written:
+
+.. math::
+
+   c_{nlm}^j = w_j g_n(r=0) Y_{lm}(x,y,z \equiv \mathbf{0}) + \sum_{i \in v(j)} w_i g_n(r_{ij}) \cdotp Y_{lm}(x,y,z \equiv \mathbf{r}_{ij})
+            \nonumber
+
+the functions :math:`g_n(r_{ij})` are polynomial basis functions (the same as the radial function on which AFS is built) or
+Chebyshev polynomials from refXXX.
+:math:`Y_{lm}` is the spherical function in the Cartesian form.
+
+
+Power Spectrum SO3 3body
+------------------------
+
+To use  power spectrum SO3 3body, set ``descriptor_type=603``. This descriptor follows the ideea
+of 3 body descriptor proposed by refXXXdeGironcoli.
+
+
+Parameters
+""""""""""
+
+The parameters of this descriptor are controlled by the
+number of radial functions, ``n_rbf``, and the angular momentum of spherical harmonics ``l_max``.
+This descriptor has two radial function choices given by ``radial_pow_so3`` flag.
+The dimension of the descriptor will be: :math:`n_{\textrm{rbf}}^2 \times (l_{\textrm{max}})`
+if ``radial_pow_so3 = 1`` or  :math:`(1 + n_{\textrm{rbf}})^2  \times (l_{\textrm{max}})`
+if ``radial_pow_so3 = 2``
+
+.. option:: radial_pow_so3 (integer)
+
+   The same utility as described before for Power Spectrum SO3 descriptor.
+
+   Default ``radial_pow_so3 = 1``
+
+.. option::  n_rbf (integer)
+
+   The same utility as described before for Power Spectrum SO3 descriptor.
+
+   Default ``n_rbf=4``
+
+.. option::  l_max (integer)
+
+   The max values of the angular moment.
+
+   Default ``l_max=4``
+
+The :math:`n_{rbf}^2 \times (1 + l_{\textrm{max}})` or :math:`(n_{rbf} + 1)^2 \times (1 + l_{\textrm{max}})` components of the power
+spectrum SO(3) 3 body descriptor of the :math:`j^{th}` atom is written:
+
+.. math::
+
+   p_{n_1 n_2 l}^j = \sum_{m=-l_{\textrm{max}}}^{l_{\textrm{max}}} c_{n_1 l -m}^{j*}c_{n_2 lm}^j
+            \nonumber
+
+with :math:`n_{1,é}` are in the range of :math:`0/1` to :math:`n_{rbf}`, whilst
+:math:`l = 0, \ldots l_{max}`. The Wigner coefficients are the same described for Power Spectrum SO3.
+
+
+Bispectrum SO3
+--------------
+
+To use bispectrum SO3, set ``descriptor_type=7``.
+
+Parameters
+""""""""""
+
+
+The parameters of the descriptor are controlled by the number of Gaussian radial
+functions, ``n_rbf``, and maximal angular momentum of spherical
+harmonics, ``(l_max``. The bispectrum SO3 descriptor components of
+the :math:`i^{th}` atom are obtained from the power spectrum SO3
+coefficients :math:`c_{nlm}^i`:
+
+.. math::
+
+   b_{n l l_1 l_2}^i = \sum_{m=-l}^{l}\sum_{m_1=-l_1}^{l_1} \sum_{m_2=-l_2}^{l_2} c_{ n l m}^{*i}C_{m m_1 m_2}^{l l_1 l_2} c_{n l_1 m_1}^i c_{n l_2 m_2}^i
+                     \nonumber
+
+where :math:`C_{m m_1 m_2}^{l l_1 l_2}` is the 3-dimensional
+Clebsch-Gordan coefficients. The dimension of this desriptor is
+difficult to know beforehand. The naive estimation of the dimension
+is ``n_rbf`` :math:`\times` ``(l_max + 1)``\ :math:`^3`. However, the
+selection rules of the Clebsch-Gordan coefficients reduce drastically
+this number e.g. for ``n_rbf=7`` and ``l_max=5`` the number of
+components is ``140`` (instead ). This number follow the GC/Karakala
+convention and take only the diagonal CG coefficients i.e.
+:math:`l_1=l_2` in previous equation. This condition can be released
+using ``lbso3_diag=.false.`` (in the above mentioned the dimension
+becomes ``483``). For numerical reasons, is highly recommended to use
+ONLY the diagonal form.
+
+.. option::  n_rbf (integer)
+
+   The number of Gaussian (radial) functions.
+
+   Default ``n_rbf=4``
+
+.. option::  l_max (integer)
+
+   The max values of the angular moment.
+
+   Default ``l_max=4``
+
+.. option::  lbso3_diag (logical)
+
+   If are taken the full bispectrum coeffcient (overcomplete), ``.false.`` or only diagonal
+   :math:`l_1=l_2` ``.true.``
+
+   Default ``lbso3_diag=.false.``
+
+
+Bispectrum SO4
+--------------
+
+To use bispectrum SO4, set ``descriptor_type=9``.
+
+Parameters
+""""""""""
+
+
+The parameters of the descriptors are controlled by maximum angular moment :math:`j_{max}`.
+The dimension is not easy to guess. Moreover, it depends on the
+choice on diagonal (:math:`j_1=j_2`) or full the complete set of
+:math:`j_1, j_2`.
+
+.. option::  j_max (integer)
+
+   The maximum componenet of the spectral
+   function.
+
+   Default ``j_max=1.5``
+
+.. option::  inv_r0_input (real)
+
+   The value of the maximum projection
+   at north pole in :math:`\pi` units. The final value that will be
+   used in code will be multiplied by :math:`\pi`. The value should
+   be slightly lower that 1 but strictly positive. The default
+   value is suggested by the brilliant paper of Bartok et al. If
+   you do not have ideea about the :math:`SO(4)` theory, trust the
+   default value.
+
+   Default ``inv_r0_input=`` ``1.d0 - 0.02/``\ :math:`\pi`
+
+.. option::  lbso4_diag (logical)
+
+   If ``.true.`` only the diagonal
+   components are selected (as in GAP). If ``.false.`` is SNAP-like
+   way and all the components are selected. It should be notted
+   that the bi-spectrum is overcomplete descriptor and only
+   diagonal components are mathematically justified. However, in
+   the original SNAP potential of Thompsson is was used in full
+   version.
+
+   Default ``lbso4_diag=.false.``
+
+
+MTP
+---
+
+To use MTP, set ``descriptor_type=100``.
+
+
+Parameters
+""""""""""
+
+
+The parameters of the descriptors are controlled by minimum and the maximum degree of the
+polynomials ``mtp_poly_min`` and ``mtp_poly_max``. The degree of the
+generating radial function will be the internal parameter
+``mtp_rad_order =mtp_poly_max - mtp_poly_min +1``. The dimension of
+the descriptor i.e. number of basis function is given by
+``mtp_dim=mtp_rad_order + 2*mtp_rad_order**2 + mtp_rad_order**3``.
+
+.. option::  mtp_poly_min (integer)
+
+   The minimum degree of the radial function
+
+   Default ``mtp_poly_min=2``
+
+.. option::  mtp_poly_max (integer)
+
+   The minimum degree of the radial function
+
+   Default ``mtp_poly_max=4``
+
+.. option:: lambda_krr (real)
+
+   The regularization using :math:`L^2` or
+   :math:`L^1` norm. It is active only for cases ``mld_fit_type=0``
+   (for a fixed positive value of ``lambda_krr`` and
+   ``mld_fit_type=10`` (for a grid). For details see the correspoding
+   documentation. For negative values this option is skipped and
+   standard fit is performed.
+
+   Default ``lambda_krr=-1.d0``
+
+
+PiP
+----
+
+To use PiP (permutationally invariant polynomials), set ``descriptor_type=200``.
+
+.. note::
+  The current implementation of PiP treat only one single type of atoms 
+
+
+Parameters
+""""""""""
+
+
+This descriptors is based by a cluster expansion of the system energy:
+
+
+.. math:: 
+
+  E = \sum_i V_1 (r_i)  + \frac{1}{2} \sum_{i,j} V_2(r_{i}, r_{j}) +  \frac{1}{3!} \sum_{i,j,k}   V_3(r_{i}, r_{j}, r_{k} ) + \ldots 
+
+
+The total energy is expressed as a sum of one-atom :math:`V_1` , 
+pair :math:`V_2`, threeatom (angle) :math:`V_3`  terms, and so forth. The order of expansion, or even a 
+combination of expantion terms are driven by ``l_body_order``. This version of ``Milady`` enables a developement 
+up to the fourth order.  The number of PiP terms for each term are driven by ``body_D_max``, 
+``bond_dist_transform``, ``bond_beta`` and ``bond_dist_ann``. 
+
+.. option:: l_body_order (logical vector)
+
+   This logical vertor of dimention 4 design the order of cluster expension. For example
+   ``l_body_order(2)=.true.``, ``l_body_order(3)=.true.``, ``l_body_order(4)=.false.`` 
+   enable a cluster expension up to the third order. 
+
+   Default ``l_body_order(:)=.true.``
+
+.. option:: body_D_max (integer vector)
+
+   This integer vector fix the number of PiP terms for each term of expansion. 
+   ``body_D_max(2)`` for :math:`V_2`, ``body_D_max(3)`` for :math:`V_3` and 
+   ``body_D_max(4)`` for :math:`V_4`. A reasonable choice can be 20, 9, 7. Try more less 
+   depending on th design that you made for your expension. 
+
+   Default   ``body_D_max(i)=i``
+
+.. option:: bond_dist_transform (integer)
+
+   TODO: choose 3
+
+   Default: ``bond_dist_transform=3``
+
+.. option:: bond_beta (real) 
+
+   TODO:  choose 2.0
+
+   Default: ``bond_beta=2.0``
+
+.. option::   bond_dist_ann
+
+   TODO: choose   bond_dist_ann=1.0
+
+   Default: ``bond_dist_ann=1.0``
+
+
+ACE
+----
+
+To use ACE (atomic cluster expansion), set ``descriptor_type=300``.
+
+
+Parameters
+""""""""""
+
+
+This descriptor is based on a hierarchy of many-body basis functions.
+
+.. .. math::
+
+..    \epsilon_a (\mathbf{R}_a) = \sum_{\nu} \mathbf{w}_{\mathbf{u}^{(\nu)}}^\top \sum_{\mathbf{m} = -\mathbf{l}_b}^{\mathbf{l}_b} c_{\mathbf{m}}^{\mathbf{l}_b \mathbf{L}_b} \mathbf{A}_{a, \mathbf{v}}^{(\nu)}(\mathbf{R}_a)
+
+The energy descriptor of an atom :math:`a` is:
+
+.. math::
+
+   \mathbf{D}_{a} = \bigoplus_{\nu} \left( \bigoplus_{\mathbf{u}^{(\nu)}} \sum_{\mathbf{m} = -\mathbf{l}}^{\mathbf{l}} c_{\mathbf{m}}^{\mathbf{l} \mathbf{L}} \mathbf{A}_{a, \mathbf{v}}^{(\nu)}(\mathbf{R}_a)
+ \right)
+   = \bigoplus_{\nu} \mathbf{D}_{a,\mathbf{u}^{(\nu)}}^{(\nu)}
+
+
+The total energy is expressed as a sum of the :math:`\nu`-body order terms, where :math:`\nu` is the number of atoms in the cluster. 
+The index :math:`\mathbf{u}` indicates a collection of indices :math:`\mathbf{\mu n l L}` that define the basis functions, 
+where each of them is a vector of :math:`\nu` elements: 
+:math:`\mathbf{\mu}` is the chemical species, :math:`\mathbf{n}` is the index of the radial function, :math:`\mathbf{l}` is the angular momentum, and :math:`\mathbf{L}` is the order of coupling. 
+The coefficients :math:`c_{\mathbf{m}}^{\mathbf{l} \mathbf{L}}` are the Clebsch-Gordan coefficients that couple the spherical harmonics. 
+The :math:`\mathbf{A}_{a, \mathbf{v}}^{(\nu)}(\mathbf{R}_a)` are the atomic basis functions, which are products of one-atom basis functions :math:`A_{a,\mu n l m}(\mathbf{R}_a)`:  
+
+.. math::
+
+   A_{a,\mu n l m}(\mathbf{R}_a) =
+   \sum_{j \in \mathcal{N}(a)} \delta_{\mu}(\mu_j)
+   R_{nl}^{\mu \mu_a}(r_{ja}) \, Y_{lm}(\hat{r}_{ja})
+
+For the case of k-ACE with a drastic reduction of number of basis functions by tensor contraction, 
+we define :math:`\mathbf{G}^{l,\mu_a,\mu_j}` a matrix composed of :math:`M` row vectors :math:`\mathbf{R}_{l}^{\mu_a \mu_j}(r_m)` at a
+given sampled distance :math:`r_m (m=1,\ldots,M)`. Then :math:`\mathbf{k}` denotes the order of contraction,
+i.e., the truncation order retained in the SVD of the matrix :math:`\mathbf{G}^{l,\mu_a,\mu_j}`.
+
+The parameters of the descriptors are controlled by the options below.
+
+.. option:: ace_numax (integer)
+
+   The maximum body order set by the user. 
+
+.. option:: ace_chem (integer)
+
+   The way to encode chemical species.
+-  ``ace_chem=0``: incomplet version, treatement for single element systems. 
+-  ``ace_chem=1``: full version, treatement for multi-element systems. 
+
+   Default ``ace_chem=1``
+
+.. option:: ace_radial_chem (integer)
+
+   The type of the radial part treatement.
+- ``ace_radial_chem=1``: Ralf version, classical ACE.
+- ``ace_radial_chem=3``: k-ACE version with tensor contraction.
+
+  Default ``ace_radial_chem=1``
+
+.. option:: ace_gencg (integer)
+
+   The type of the generation of the Clebsch-Gordan coefficients.
+
+- ``ace_gencg=1``: redundant version.
+- ``ace_gencg=2``: SVD Dusson-Ortner version.
+ 
+  Default ``ace_gencg=2``
+
+.. option:: l_ace_order (logical vector)
+
+   This logical vector defines which order(s) of cluster expension is activated. 
+   For example, the setting
+
+   ``l_body_order(1)=.true.``
+   
+   ``l_body_order(2)=.true.``
+   
+   ``l_body_order(3)=.true.``
+
+   ``l_body_order(4)=.false.``
+   
+   ``l_body_order(5)=.false.``
+    
+   ``l_body_order(6)=.false.``
+
+   enables a cluster expension up to the third order. 
+
+.. option:: ace_nmax_list (string)
+
+   A string of integer numbers that define the maximum value of :math:`\mathbf{n}` for each body order. 
+   The length of this string should be at least equal to ``ace_numax``. 
+
+   Example: ``ace_nmax_list = "14 5 4 3 2 1"`` 
+
+.. option:: ace_lmax_list (string)
+
+   A string of integer numbers that define the maximum value of :math:`\mathbf{l}` for each body order. 
+   The length of this string should be at least equal to ``ace_numax``. 
+
+   Example: ``ace_lmax_list = "0 4 3 2 1 1"``
+
+.. option:: ace_kmax_list (string)
+
+   A string of integer numbers that define the maximum value of :math:`\mathbf{k}` for each body order. 
+   The length of this string should be at least equal to ``ace_numax``. 
+
+   Example: ``ace_kmax_list="5 3 3 3 3 3"``
+
+.. option:: ace_radial_poly (integer)
+
+   The type of the polynomial in the radial part. 
+
+   1 - powPftouny; 2 - expPaftouny; 3 - simpBessel 
+
+   Default   ``ace_radial_poly=2``
+
+.. .. option:: ace_lambda_list (string)
+
+..    A string of real numbers that define the value of :math:`\lambda` for each body order. 
+..    The length of this string should be at least equal to ``ace_numax``.
+
+..    Example: ``ace_lambda_list="3.0 3.0 3.0 3.0 3.0 3.0"``         
+   
+
+.. zetaace_order =      1
+.. ! here is the body nu=1... 
+.. dim_delta_zetaace(1) = " 1.d0 1.d0 1.d0 1.d0 1.d0 1.d0 "  
+.. ! nu =2 
+.. dim_delta_zetaace(2) = " 1.d0 1.0d0 1.0d0 1.0d0 1.d0 1.d0 "  
+.. ! nu = 3 
+.. dim_delta_zetaace(3) = " 1.d0 1.0d 1.0d0 1.0d0 1.d0 1.d0 "  
+.. l_ace_set_rcut = .false. 
+.. ace_rcut_in_list =" 1.2d0 1.2d0 1.2d0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+.. ace_rcut_width_in_list =" 0.4d0 0.4d0 0.4d0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+.. ace_rcut_out_list =" 5.d0 5.d0 5.d0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+.. ace_rcut_width_out_list =" 0.5d0 0.5d0 0.5d0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+
+
+--- FILE: docker.txt ---
+
+.. _`sec:docker`:
+
+
+
+Pull the image
+::::::::::::::
+
+For easier access to Milady, we provide pre-buit Docker images, which are publicly available on DockerHub. 
+We recommend this approach for new users.
+
+.. Hint:: Using docker pre-built images allow for an installation with minimal effort, for use on both workstations and HPC facilities (using Singularity or pcocc to run Docker images).
+
+.. Warning:: Using pre-built images, expect some performance reduction compared to building from source. For HPC use and if performance is crucial, we recommend going through the route of compiling on your target platform.
+
+
+
+To get started with the Milady Docker image, follow these steps:
+
+1. Install Docker Engine by following the instructions available at https://docs.docker.com/engine/.
+
+2. Pull the Milady Docker image from DockerHub:
+
+.. code-block:: bash
+
+   docker pull aallera/milady:1.0.2
+
+
+Now that you have the Milady Docker image, you can use it based on the following usage examples:
+
+Usage
+:::::
+
+Run Milady in the current directory and exit:
+
+1. With 4 CPUs (default):
+
+.. code-block:: bash
+
+   docker run -it --rm -v "$(pwd):/workspace" aallera/milady:1.0.2
+
+2. With 8 CPUs (using the ``-np 8`` option):
+
+.. code-block:: bash
+
+   docker run -it --rm -v "$(pwd):/workspace" aallera/milady:1.0.2 -np 8
+
+Run Jupyter in the container:
+
+.. code-block:: bash
+
+   docker run -it --rm -p 8888:8888 -v "$(pwd):/workspace" aallera/milady:1.0.2 shell
+
+.. Hint:: Exposing the current directory to the container with ``-v`` allows you to export your results to disk.
+
+This command opens a shell inside the container.
+Then, you can run the following command to start the Jupyter Notebook:
+
+.. code-block:: bash
+
+   notebook
+
+
+You can also interactively navigate in the container, where the current directory of the host is mounted to ``/workspace``.
+The Milady executable is available with the command:
+
+.. code-block:: bash
+
+   milady
+
+
+--- FILE: download.txt ---
+
+.. _`sec:down`:
+
+
+Download sources
+----------------
+
+The open source Machine Learning Dynamics software can be downloaded 
+through a GitHub repository. 
+The repository is private but in order to have access 
+just :email:`send us an email<ai.unseen.group@gmail.com>` to let us know from which GitHub 
+account you intend to download ``Milady``. That’s all!!! 
+
+
+--- FILE: input.txt ---
+
+Input files
+===========
+
+The following files are required in the directory where ``MILADY`` is
+executed.
+
+.. glossary::
+
+   name.in
+   
+      A text file which only contains a user-defined string, denoted as ``PREFIXSIM``, which sets the prefix of the simulation, 
+      and the name of the ``PREFIXSIM.ml`` file. 
+      
+   PREFIXSIM.ml
+
+      The ``input`` file is the configuration file for
+      ``MILADY``. It is a list of keywords/values which regard: 
+
+      - `the machine learning model <model.html>`__
+      - `the descriptors <descriptors.html>`__ 
+      - `the database <database.html>`__ 
+      - `the weight optimization algorithm <../weight.html>`__.
+
+   db_file
+
+      The file (with the default name ``db_model.in``)
+      that controls the design of the database. A description of this file
+      can be found in the `database section <database.html>`__.
+
+      .. note::
+         
+         Others files may be required depending on the keywords set in
+         ``PREFIXSIM.ml``.
+
+
+
+--- FILE: install_irene.txt ---
+
+.. _`sec:insta_irene`:
+
+Build on Irene
+::::::::::::::
+
+Here we provide the instructions for building ``MILADY`` on the most powerful french and PRACE 
+supercomputer `Irene / JoliotCurie <http://www-hpc.cea.fr/en/complexe/tgcc-JoliotCurie.htm>`_.
+
+    .. note::
+      We describe here the way that we use, and we know that it works.
+      If you know a better precodure, we are happy to learn about your experience.
+      You can email us to update the present documentation.
+
+Step 1: Loading modules and setting bash environement
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the following, ``MILADY`` refers to the GitHub repository. We preserve here the same structure of the
+directories as in previous examples.   
+
+1.  Create a directory ``MLD`` and copy ``MILADY`` in that location. 
+    Hereafter, ``${MLD}`` is the location of ``MLD`` directory.
+
+2.  Set your ``bash`` environment. My ``${HOME}/.bashrc`` file contains the
+    following modules and variables: 
+
+    .. code-block:: bash
+
+      module load mpi/openmpi/4.1.1 scalapack/mkl/21.3.0
+      module load fortran/inteloneapi/21.4.0
+      module load gnu/11.2.0 
+      module load cmake/3.20.3
+      export OMPI_FC=ifort
+      export OMPI_CXX=g++
+      export OMPI_CC=gcc
+
+    .. note::
+
+      ``mld_build`` and ``mld_install`` will be created by the installation procedure, whilst
+      ``mld_testdir`` is a directory with tests that is not compulsory.
+
+3.  Define in your environment the following ``bash`` function (can be added at the end
+    of your ``${HOME}/.bashrc`` file)
+  
+    .. code-block:: bash
+
+      function f_setenv_milady {
+        unset MLD_ROODIR
+
+        unset MLD_ROODIR
+        unset MLD_SCRDIR
+        unset MLD_SRCDIR
+        unset MLD_BUIDIR
+        unset MLD_INSDIR
+        unset MLD_TESDIR
+        unset MLD_SETENV
+        unset OMP_INSDIR
+        unset OMP_ROOT
+       
+        export MLD_ROODIR="${MLD}/"
+        # I use: export MLD_ROODIR="${CCCWORKDIR}/MLD/"
+        [ -z "${MLD_ROODIR}" ] && in_red 'problem undefined MLD_ROODIR, define it'
+        export MLD_SRCDIR=${MLD_ROODIR}/MILADY
+        export MLD_BUIDIR=${MLD_ROODIR}/mld_build
+        export MLD_INSDIR=${MLD_ROODIR}/mld_install
+        export MLD_TESDIR=${MLD_ROODIR}/mld_testdir
+        export MKL_ROOT=/ccc/products/mkl-21.3.0/system/default/21.3.0/
+        export OMP_ROODIR=/ccc/products/ifx-21.4.0/system/default/
+        export OMP_INSDIR=/ccc/products/openmpi-4.1.1/intel--20.0.0/default
+        export OMP_ROOT=/ccc/products/openmpi-4.1.1/intel--20.0.0/default
+        export MLD_SETENV=ON
+        export LD_LIBRARY_PATH=/ccc/products/mkl-21.3.0/system/default/21.3.0/lib/intel64/:$LD_LIBRARY_PATH
+        export PATH=${MLD_SRCDIR}/scripts:${PATH}
+      }
+
+Step 2: Installation  
+^^^^^^^^^^^^^^^^^^^^
+
+1.  Charge the ``MILADY`` bash environment (do not forget to source your ``$HOME/.bashrc`` file before it):
+
+    .. code-block:: bash
+
+      f_setenv_milady
+      source ${MLD}/MILADY/scripts/compile_milady.bash
+
+
+    .. note::
+      Do not forget that ``${MLD}`` is defined by you. It is the path to the  ``MLD`` directory.
+
+2.  Install MILADY:
+
+    .. code-block:: bash
+
+      f_compile_milady_mix
+      make -j4
+
+
+And that is it ! The executable is in ``bin/milady_main.exe``.
+
+
+--- FILE: install_marconi.txt ---
+
+_`sec:insta_marconi`:
+
+Build on Marconi
+::::::::::::::::
+
+Here we provide the instructions for building ``MILADY`` on the widely used
+supercomputer `MARCONI <https://www.hpc.cineca.it/hardware/marconi>`_.
+
+    .. note::
+      We describe here the way that we use and we know that it works.
+      If you know a better procedure, we are happy to learn about your experience.
+      You can email us to update the present documentation.
+
+Step 1: Loading modules and setting bash environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the following, ``MILADY`` refers to the GitHub repository. We preserve here the same structure of the
+directories as in previous examples.
+
+1.  Create a directory ``MLD`` and copy ``MILADY`` in that location. 
+    Hereafter, ``${MLD}`` is the location of ``MLD`` directory.
+
+2.  Set your ``bash`` environment. My ``${HOME}/.bashrc`` file contains the
+    following modules and variables: 
+
+    .. code-block:: bash
+
+      module load env-skl
+      module load intel/pe-xe-2020--binary
+      module load mkl/2020--binary
+      module load intelmpi/2020--binary
+      module load cmake/3.18.2
+      export I_MPI_FC=ifort
+      export I_MPI_F90=ifort
+      export I_PMI_CXX=g++
+      export I_MPI_CC=gcc
+
+    .. note::
+
+      ``mld_build`` and ``mld_install`` will be created by the installation procedure, whilst
+      ``mld_testdir`` is a directory with tests that is not compulsory.
+
+3.  Define in your environment the following ``bash`` function (can be added at the end
+    of your ``${HOME}/.bashrc`` file)
+  
+    .. code-block:: bash
+
+      function f_setenv_milady{
+        unset MLD_ROODIR
+        unset MLD_SCRDIR
+        unset MLD_SRCDIR
+        unset MLD_BUIDIR
+        unset MLD_INSDIR
+        unset MLD_TESDIR
+        unset MLD_SETENV
+        unset OMP_INSDIR
+        unset OMP_ROOT
+       
+        export MLD_ROODIR="${MLD}/"
+        
+        export MLD_SRCDIR=${MLD_ROODIR}/MILADY
+        export MLD_BUIDIR=${MLD_ROODIR}/mld_build
+        export MLD_INSDIR=${MLD_ROODIR}/mld_install
+        export MLD_TESDIR=${MLD_ROODIR}/mld_testdir
+        export MLD_SETENV=ON
+        export MKL_ROOT=${MKLROOT}
+        export OMP_INSDIR=/cineca/prod/opt/compilers/intel/pe-xe-2020/binary/impi/2019.9.304/intel64/
+        export OMP_ROOT=/cineca/prod/opt/compilers/intel/pe-xe-2020/binary/impi/2019.9.304/intel64/
+     
+        export PATH=${MLD_ROODIR}/MILADY/scripts:${PATH}
+      }
+
+Step 2: Installation  
+^^^^^^^^^^^^^^^^^^^^
+
+1.  Charge the ``MILADY`` bash environment (do not forget to source your ``$HOME/.bashrc`` file before it):
+
+    .. code-block:: bash
+
+      f_setenv_milady
+      source ${MLD}/MILADY/scripts/compile_milady.bash
+
+
+    .. note::
+      Do not forget that ``${MLD}`` is defined by you. It is the path to the ``MLD`` directory.
+
+2.  Install MILADY:
+
+    .. code-block:: bash
+
+      f_compile_milady_intel
+      make -j6
+
+
+And that is it ! The executable is in ``bin/milady_main.exe``.
+
+--- FILE: install_milady-lammps.txt ---
+
+.. _`sec:insta_lammps`:
+
+MILADY potentials in Lammps
+---------------------------
+
+In order to use ``MILADY`` potentials with ``Lammps`` you should compile 
+``Lammps``with ``Milady`` library. 
+The next :ref:`section Using <sec:using_lammps>` briefly summarizes how to 
+employ in ``Lammps`` our potentials while the  :ref:`section Installing <sec:install_lammps>` details the 
+full ``Lammps + MILADY`` installation. 
+
+
+.. _`sec:using_lammps`:
+
+Using MILADY potentials 
+^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Running ``Lammps`` with ``MiLaDy`` potentials is easy: 
+set in ``Lammps`` input file the ``pair_style`` as ``milady`` and indicate 
+the name of your potential file:
+
+.. code-block:: bash
+
+  pair_style milady
+  pair_coeff * * Fe_LML.pot Fe
+
+For multi-element systems, you should simply provide the elements for which your potential was designed. 
+For example, for a potential developed for a TaTiVW HEA,the ``pair_coeff``
+line is as follow: 
+
+.. code-block:: bash
+
+  pair_coeff * * hea.pot Ta Ti V W
+
+.. The ready-to-use input files can be found in Examples of this repository.
+
+You can also compute and output the descriptors with the following command:
+
+.. code-block:: bash
+
+  compute D all milady/atom
+  dump 1 all custom 10 dump.milady.* id type c_D[*]
+
+Note that you don't need to set any specific parameters for this compute, and all potential parameters are read directly from the ``*.pot`` file.
+
+.. Actually, this compute doesn't perform any calculations itself. 
+.. It simply gathers and outputs the descriptors already calculated by the Milady library during the force computations.
+
+
+.. _`sec:install_lammps`:
+
+Installing Lammps and MILADY  
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Here we provide the steps for building ``Lammps`` with ``MILADY`` patch will call 
+this as ``milady_lammps``. 
+
+.. note::
+
+  ``milady_lammps`` installation is similar to ``Lammps`` regular 
+  installation for which the  library ``ml-milady`` is on. So far,  
+  for the users, which have experience with ``Lammps`` installation they 
+  can go directly to ``milady_lammps`` part.      
+
+The current version of ``milady_lammps`` requires:
+
+- Fortran compiler: ``gfortran`` OR ``ifort``
+- C++ compiler: ``g++`` 
+- MKL library from Intel (for this installation) or any other 
+  Lapack/ScaLapack distribution.   
+
+We have tested installations with following versions:
+
+.. code:: bash
+
+  g++        (version >= 9.0.0)
+  gfortran   (version >= 9.0.0)
+  ifort      (version >= 2018.0.0)
+  MKL        (version >= 2018.0.0) with gfortran support
+
+
+
+We describe here the way that we use and we know that it works.
+If you know a better precedure, we are happy to learn about your experience.
+You can :email:`send us an email<ai.unseen.group@gmail.com>` to update the present documentation.
+
+
+
+1. Clone our repository of ``milady_lammps``:
+
+.. code:: bash
+
+  git clone --recursive git@github.com:tomswinburne/milady_lammps.git milady_lammps.git
+
+2. turn on  ``MILADY`` library in ``Lammps``:
+
+.. code:: bash
+
+  cd milady_lammps.git/src 
+  make yes-ml-milady 
+
+3. Choose the compilator for ``milady_lammps``: ``intel`` or ``gfortran``. 
+Note that there is no restriction in the choice that you have for the 
+compilation of ``Lammps`` (we use default parameters and ``g++`` compiler). 
+Below, we provide the 2-step example using Intel Fortran ``ifort``. 
+The case of ``gfortran`` is similar.
+ 
+3a. Edit the appropiate  ``Makefile.lammps.ifort`` for your architecture. 
+``milady_lammps`` library uses ``MKL`` and some other Intel libraries from 
+``Intel Fortran`` compiler. You need to localize the root directory 
+for ``MKL`` and ``intel64`` libraries. 
+We use ``oneAPI Intel`` free distribution. Here are our choices:
+
+.. code:: bash
+
+  MKLROOT=/opt/intel/oneapi/mkl/latest/
+  LIBCOMP=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64/
+  
+The paths will be similar for any older distribution of ``MKL`` and 
+``Intel Fortran``,  such as ``Intel Composer``, ``Intel Parallel Studio``,  etc.
+If you have doubts: write us :email:`send us an email<ai.unseen.group@gmail.com>` . We are happy to help you !!!!
+
+.. note::
+
+  If this is too painful, for you we provide some examples of ``Makefile.lammps.ifort`` on various 
+  computers. Here you can found an 
+  ``Makefile.lammps.ifort`` for `HPC Marconi <https://raw.githubusercontent.com/ai-atoms/milady-docs/main/src/contents/install/Files/Makefile.lammps.ifort>`_ , `TGCC Irene <https://raw.githubusercontent.com/ai-atoms/milady-docs/main/src/contents/install/Files/Makefile.lammps.ifort_ForIrene>`_ 
+  and `some personal computer <https://raw.githubusercontent.com/ai-atoms/milady-docs/main/src/contents/install/Files/Makefile.lammps.ifort_ForLinux>`_  . 
+  After download please copy that file in ``lib/milady/Makefile.lammps.ifort``
+
+3b. Compile ``milady`` library in ``milady_lammps``: 
+
+.. code:: bash 
+
+    cd milady_lammps.git/lib/milady
+    make -f Makefile.mpi_ifort  clean 
+    make -f Makefile.mpi_ifort   
+
+4. ``milady_lammps`` final compilation .... ouufff: 
+
+.. code:: bash 
+
+    cd milady_lammps.git/src
+    make mpi 
+
+.. warning::
+  Sometime the default main makefile of Lammps, i.e. ``Lammps/src/MAKE/Makefile.mpi``, is somehow 
+  different from platform to platform. 
+  If this last point has some problems, it means that you have some inconsistencies in the ``Lammps`` 
+  compilation. Try with one of the following ``Makefile.mpi`` file, which we use for some platfroms, such as 
+  `Marconi <https://raw.githubusercontent.com/ai-atoms/milady-docs/main/src/contents/install/Files/Makefile.mpi_Lammps_Marconi>`_ , 
+  TGCC Irene 
+  or `some personal computer <https://raw.githubusercontent.com/ai-atoms/milady-docs/main/src/contents/install/Files/Makefile.mpi_ForLinux>`_  .   
+       
+
+That's it! We know ... compilations are painful!
+
+.. note::
+  IMPORTANT:  Many thanks to users that have reported some typos, errors in 
+  Makefile. In particular many thanks to  Marie Landeiro Dos Reis, Antoine Kraych and Jan Wróbel!
+
+
+
+
+--- FILE: installation.txt ---
+
+.. _`sec:insta`:
+
+Local build
+-----------
+
+Prerequisites
+:::::::::::::
+
+The current version of ``MILADY`` requires: 
+
+- A fortran compiler (tested ifort > 2019.x.x, gfortran > 10.x.x)
+- The LAPACK / SCALAPACK library (tested MKL distribution > 19.x.x)
+- An MPI library  (tested OpenMPI > 4.x.x or IntelMPI > 2019.x.x)
+- CMake (tested > 3.18.x) 
+
+Compilation modes
+:::::::::::::::::
+
+``MILADY`` has three compilation modes:
+
+.. glossary::
+  MILADY-MIX
+
+    - intel compilers (2022.0.1)
+    - MKL with ScaLapack support
+    - openmpi user-compiled, or system, compatible with intel compilers (> 4.x.x)
+
+
+  MILADY-INTEL
+
+    - intel compilers included in oneAPI distribution 
+    - MKL with ScaLapack support both of them included in the oneAPI distribution 
+    - intelmpi equally included in oneAPI distribution. 
+
+
+  MILADY-GNU
+
+    - GNU compilers (min V9)
+    - MKL or LAPACK/ScaLapack support for GNU.
+    - openmpi user-compiled, or system, gnu-compiled
+
+.. Hint:: Our preference is MILADY-MIX, using the intel fortran compiler and MKL / SCALAPACK provided by oneAPI (> 2022.x.x). OpenMPI (> 4.x.x) is compiled by our means using ifort compiler.
+
+Compilation
+:::::::::::
+
+Step 1: Setting environment variables 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the following, ``MILADY`` refers to the github repository.
+
+1.  Create a directory ``MLD`` and copy ``MILADY`` in that location. 
+    Hereafter, ``${MLD}`` is the location of ``MLD`` directory.
+
+2.  Your environment should contain the following 9 variables, which are compulsory for the compilation ``MILADY``
+
+    The first six variables:
+
+    .. code-block:: bash
+
+      export MLD_ROODIR=${MLD}
+      export MLD_SRCDIR=${MLD_ROODIR}/MILADY
+      export MLD_BUIDIR=${MLD_ROODIR}/mld_build
+      export MLD_INSDIR=${MLD_ROODIR}/mld_install
+      export MLD_TESDIR=${MLD_ROODIR}/mld_testdir
+      export MLD_SETENV=ON
+
+    .. note::
+
+      ``mld_build`` and ``mld_install`` will be created by the installation procedure, whilst
+      ``mld_testdir`` is a directory of tests that is not compulsory (more details later). 
+
+    The last 3 variables, followed by a redefinition of ``PATH``:
+
+    .. code-block:: bash
+
+      export MKL_ROOT=${MKLROOT}
+      export OMP_INSDIR=/usr/local/iopenmpi
+      export OMP_ROOT=${OMP_INSDIR}
+      export PATH=${MLD_ROODIR}/MILADY/scripts:${PATH}
+
+    ``MKL_ROOT`` and ``OMP_INSDIR`` should contain the installation path to ``MKL`` and ``openMPI``, respectively.
+
+    .. Tip:: (Optional) It can be more convenient to set the environment variable using a bash function:
+      
+      .. code-block:: bash
+
+        function f_setenv_milady_marinica {
+          unset MLD_ROODIR
+          unset MLD_SCRDIR
+          unset MLD_SRCDIR
+          unset MLD_BUIDIR
+          unset MLD_INSDIR
+          unset MLD_TESDIR
+          unset MLD_SETENV
+          unset OMP_INSDIR
+          unset OMP_ROOT
+          export MLD_ROODIR="${HOME}/MLD"
+          
+          export MLD_SRCDIR=${MLD_ROODIR}/MILADY
+          export MLD_BUIDIR=${MLD_ROODIR}/mld_build
+          export MLD_INSDIR=${MLD_ROODIR}/mld_install
+          export MLD_TESDIR=${MLD_ROODIR}/mld_testdir
+          export MLD_SETENV=ON
+
+          export MKL_ROOT=${MKLROOT}
+          export OMP_INSDIR=/usr/local/iopenmpi/
+          export OMP_ROOT=/usr/local/iopenmpi/
+
+          export PATH=${MLD_SRCDIR}/scripts:${PATH}
+        }
+
+Step 2: Compilation
+^^^^^^^^^^^^^^^^^^^^
+
+
+1.  Charge the bash functionalities:
+
+    .. code-block:: bash
+
+      source ${MLD_SRCDIR}/scripts/compile_milady.bash
+
+    with a typical output:
+
+    .. code-block:: bash
+        
+      Now you could type:
+      f_setenv_milady
+      f_compile_milady_mix or
+      f_compile_milady_intel or
+      f_compile_milady_gnu
+
+2.  Invoke CMake (here in MILADY-MIX mode):
+
+    ::
+    
+      f_compile_milady_mix
+
+    with a typical output: 
+
+    .. code-block:: bash
+
+      Now you could type:
+      make -j6
+      make install
+      f_ctest_milady
+      f_explore_milady
+
+3.  Compile the code (as suggested by the output of 2.) 
+
+    .. code-block:: bash
+
+      make -j6 # will use 6 parallel jobs
+
+THAT'S ALL FOLKS !!! The executable is in ``bin/milady_main.exe``.
+
+In order to test, run the step-by-step examples provided in the `Examples section <examples.html>`__.
+
+--- FILE: kernels.txt ---
+
+
+.. _`sec:kernel`:
+
+Kernels
+=================
+
+
+
+Kernel regression is activated when ``MILADY`` is executed in the mode ``ml_type=1``.
+The generation of a kernel potential is made in two steps as it is described
+in :ref:`Examples<ex:kernel-poly>` : (i) firstly, using ``ml_type=-2`` mode with an
+appropriate algorithm we choose the sparse points that define the kernel and (ii)
+the parametrization of the kernel using the mode ``ml_type=1``. Here we will note the options for the
+first step as :math:`k_1`, whilst for the second :math:`k_2`.
+
+Kernels definitions
+^^^^^^^^^^^^^^^^^^^
+
+.. option::  kernel_type (integer),
+
+   :math:`k_2` option.
+
+   -  ``kernel_type = 1`` Square-exponential kernel
+
+      .. math::
+         \tilde{k}(\mathbf{D}^{s,a}, \mathbf{x}^m)  =  \sigma_{SE}^2 \exp{-\frac{|\mathbf{D}^{s,a} - \mathbf{x}^m |^2}{2l_{SE}^2}}
+         :label: kSE       
+
+      the values to define are :math:`\sigma_{SE}` and :math:`l_{SE}`.
+
+   -  ``kernel_type = 4`` Polynomial kernel shifted
+
+      .. math::
+         \tilde{k}(\mathbf{D}^{s,a}, \mathbf{x}^m)  =  \left(\sigma_{SE}^2 + \frac{\mathbf{D}^{s,a} \cdot  \mathbf{x}^m }{2l_{SE}^2}  \right)^p
+         :label: kPO
+
+      the values to define are :math:`\sigma_{SE}`, :math:`l_{SE}` and
+      :math:`p`.
+
+   -  ``kernel_type = 5`` Polynomial kernel scaled 
+
+      .. math::
+         \tilde{k}(\mathbf{D}^{s,a}, \mathbf{x}^m)  =  \sigma_{SE}^2 \left( \frac{\mathbf{D}^{s,a} \cdot \mathbf{x}^m }{|\mathbf{D}^{s,a}| |\mathbf{x}^m|}  \right)^p
+         :label: kPOs
+
+      the value to define  :math:`\sigma_{SE}` and
+      :math:`p`.
+
+   -  ``kernel_type = 6`` Mahalanobis - Batchattarya kernel
+
+      .. math::
+         \tilde{k}(\mathbf{D}^{s,a}, \mathbf{D}^m)  =  \left[ \left( \mathbf{D}^{s,a} - \mathbf{x}^m \right)^\top  \Sigma^{-1} \left(  \mathbf{D}^{s,a} - \mathbf{x}^m \right) \right]^p
+         :label: kMAHA
+
+      :math:`p` should be defined. For the case :math:`p=1/2` there is
+      Mahalanobis distance.
+
+   -  ``kernel_type = 7`` Square-exponential kernel for which the covariance matrix is sampled randomly on
+      some linear basis. The only parameter to define is ``sigma_kernel``
+      ( typical value is ``sigma_kernel = 0.05`` but try more values to be sure that it is adapted for
+      your descriptor).
+
+   -  ``kernel_type = 44`` Polynomial kernel for which the covariance matrix is sampled randomly on
+      some linear basis. The only parameter to define is ``kernel_power``. Usually ``kernel_power=4`` it is a
+      resonable value (at least on what we have tested, such as, Fe, W, some HEA and aspirin)
+
+   | Defalut ``kernel_type = 4``
+
+.. option::  length_kernel (real)
+
+   :math:`k_2` option. It defines
+   :math:`l_{SE}` from Eqs. :math:numref:`kSE` and :math:numref:`kPO`.
+
+   Default ``length_kernel = 0.05d0``
+
+.. option::  sigma_kernel (real)
+
+   :math:`k_2` option. It defines
+   :math:`\sigma_{SE}` from from Eqs. :math:numref:`kSE` and :math:numref:`kPO`. 
+   In ``Milady`` for polynomial kernel is optimal 0.d0. 
+
+   Default ``sigma_kernel = 0.d0``
+
+   .. warning::
+
+     Pay attetion that ``sigma_kernel = 0.d0`` for square-exponential kernel has no sense !!!
+
+.. option::  kernel_power (real)
+
+   :math:`k_2` option. It defines :math:`p`
+   from Eqs. :math:numref:`kMAHA`. The recommended values are 3, 1
+   and 1/2, respectively.
+
+   Default ``kernel_power = 2.d0``
+
+Selections of kernel sparse points
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+
+In ``Milady`` the selection of sparse points (``ml_type=-2`` and ``write_krnel_matrix=.true.``) 
+is driven by our intuition based on physics considerations 
+that some parts of the database are more important than the others. 
+For example if we are interested in having nice elastic constants we will make a 
+special treatment for the database classes that contain elastic deformations.  
+Consequently, from the complete ``database`` we select some classes that we 
+will name as ``database_reference``. Beyond the algorithm of sparse points selection 
+(defined by ``kernel_dump``) we bias the selection by the number of points to be selected 
+from ``database`` and ``database_reference`` i.e. ``np_kernel_full`` and ``np_kernel_ref``, 
+respectively.  
+The selection of classes that encompass ``database_reference`` is given by the character 
+variable ``classes_for_mcd`` (the name is weird because it corresponds sometimes to the most 
+“smooth” classes without outliers such as molecular dynamics for perfect bulk configuration, 
+elastic deformations etc). Finally the kernel is written 
+
+.. option::  write_kernel_matrix (logical)
+
+   :math:`k_1` option. Writes or not the kernel if it is ``.true.`` or ``.false.``, respectively. 
+   The kernel is written in the file ``kernel_matrix.dat``, which has the shape
+   ``number_of_data_kernel+1`` :math:`\times` ``dim_desc + 4``. 
+   The ASCII file ``kernel_matrix.dat`` has the following structure:
+
+   .. code-block::
+
+      2314 59
+      1    a1 a2 ... aD   43  27  07_111_000003
+      2    b1 b2 ... bD  234  12  09_111_000010
+      .     .  .      .   .   .       .
+      .     .  .      .   .   .       .
+      .     .  .      .   .   .       .
+      2314 c1 c2 ... cD  10  127  11_111_000023
+
+   The first line gives the number of kernel sparse points (2314 in this example) and the 
+   number of columns for
+   each sparse point (59).
+   Each following lines (again, 2314) contains in first position the id of the sparse point, 
+   then followed by ``D`` real values  with the ``D`` components of the descriptor and finally 
+   there are three labels that identify the origin of that sparse point: an internal id used for 
+   ``Milady``, which identify the system,
+   the id of atom in that system and the human readable name of the system similar to ``poscar`` 
+   name file described in :ref:`Database file names<sec:dbnames>`.  In above example for 
+   sparse point ``1`` is part of system  ``43`` and i correspond to atom number ``27`` 
+   from the file ``07_111_000003.poscar``.
+       
+
+   Default ``.false.``
+
+.. option:: kernel_dump (integer)
+
+   :math:`k_1` option. Algorithm used for the selection of the
+   sparse points.
+
+   -  ``kernel_dump=1`` normalized selection of sparse points using MCD/Mahalanobis distances. There are 4 parameters to set: 
+      ``power_mcd``,  ``np_kernel_ref``, ``np_kernel_full`` and reference classes given by
+      ``classes_for_mcd``. Is what we advice to use. More details in the paper A. Zhong et al. 2022 
+      (refered as normalized MCD/Mahalanobis sparse points selection)
+
+   -  ``kernel_dump=2`` draft selection of sparse points using MCD/Mahalanobis distances. There are 4 parameters to set: 
+      ``power_mcd``,  ``np_kernel_ref``, ``np_kernel_full`` and reference classes given by
+      ``classes_for_mcd``.   More details in the paper A. Zhong et al. 2022 
+      (refered as MCD/Mahalanobis sparse points selection)
+
+   -  ``kernel_dump=3`` selection based on CUR decomposition. *REF Mahoney* .  There are three 
+      parameters that should be set: ``np_kernel_ref``, ``np_kernel_full``
+      as well as the reference classes given by ``classes_for_mcd``. For advanced applications 
+      there are others options for CUR descoposition, such as: ``cur_kval``, 
+      ``cur_rval`` and ``cur_eps``. However, the selection of sparse points is not very sensible to these 
+      last 3 parameters.   
+
+.. option::  classes_for_mcd (character)
+
+   :math:`k_1` option. It defines the classes that define the ``database_reference``. FFor examples 
+   ``classes_for_mcd="10 11"`` defines the collections of all the atomic environements from the 
+   classes ``10`` and ``11``. Moreover, for the case ``kernel_dump=1`` or ``kernel_dump=2`` 
+   the atomic configurations,  which  belong to these classes, are used to build the 
+   sample covariance matrix used to compute MCD/Mahalanobis distance.   
+
+   Default ``classes_for_mcd= " 01 "``
+
+.. option::  np_kernel_ref (integer)
+
+   :math:`k_1` option. Number of sparse points
+   selected from the ``database_reference`` (defined by the atomic environements specified by 
+   ``classes_for_mcd``). However, depending on the selection algorithm the selected sparse points 
+   can be lower or can have a small noise around the mediam value. 
+
+   Default ``np_kernel_ref= 200``
+
+.. option::  np_kernel_full (integer)
+
+   :math:`k_1` option. Number of points selected from the whole database. However,
+   depending on the selection algorithm the final number of selected points can be lower or larger 
+   (but not very different).
+
+   Default ``np_kernel_full= 800``
+
+.. option::  power_mcd (real)
+
+   :math:`k_1` option. Defines the power of MCD / Mahalanobis statistical distance on which the 
+   selection grid od sparse points is made. More details in A. Zhong et al. 2022. If you do not 
+   know what to do ... leave the default value.    
+
+   Default ``power_mcd = 0.05d0``
+
+.. option::  cur_kval (integer)
+
+   :math:`k_1` option. Defines the order of SVD decomposition of the atomic desing matrix in order to perform 
+   the leverage column score as was introduced by **REF Mahoney**. it cannot be larger than the rank(atomic desing matrix)
+   or the number of columns and rows of atomic design matrix. If it is given a  negative value then 
+   the optimal value i.e. the rank(atomic desing matrix) is used.   
+
+   Default ``cur_kval = -1``
+
+.. option::  cur_rval (integer)
+
+   :math:`k_1` option. Defines the number of rows selection in CUR decomposition as it was introduced by  
+   **REF Mahoney**. If you are not sure about your choice, choose the default value i.e. -1.    
+
+   Default ``cur_rval = -1``   
+
+.. option::  cur_eps (real)
+
+   :math:`k_1` option. Defines the error of sampling in CUR decomposition as it was introduced by  
+   **REF Mahoney**. If you are nor sure about your choise, choose the default value  i.e. 1.   
+
+   Default ``cur_eps = 1.d0`` 
+
+
+
+
+
+
+
+--- FILE: model.txt ---
+
+
+.. _`sec:models`:
+
+ML tasks
+=========
+
+Here we describe the key words controlling the settings of models in ``input.ml`` file.
+
+
+.. option:: ml_type (integer)
+
+  The type of of ML task.
+  The following options are possible:
+
+  +------------------------------------------------------------+
+  |                **Regression models**                       |
+  +---------------+--------------------------------------------+
+  | ``ml_type=0`` | Regression using basis functions           |
+  |               | (e.g. LML, QNML, polynomial chaos, etc.)   |
+  +---------------+--------------------------------------------+
+  | ``ml_type=1`` | Kernel ridge regression                    |
+  +---------------+--------------------------------------------+
+  | ``ml_type=2`` | *Reserved only for advanced users*         |
+  +---------------+--------------------------------------------+
+  |                    **Other tasks**                         |
+  +---------------+--------------------------------------------+
+  | ``ml_type=-1``| Compute descriptors only without any fit   |
+  +---------------+--------------------------------------------+
+  | ``ml_type=-2``| Analyze the data and, if required, make    |
+  |               | a choice of kernel to use in ``ml_type=1`` |
+  +---------------+--------------------------------------------+
+
+
+  Default is ``ml_type=0``.
+
+.. _`sec: desc_only`:
+
+Descriptors only
+^^^^^^^^^^^^^^^^
+
+The following keywords are useful for the tasks with ``ml_type=-1``, where descriptors are computed and written into files without performing regression. Other types of ``ml_type`` do not exclude using these options. For the descriptor-specific settings, see the :ref:`Descriptors section<sec:descriptors>`.
+
+.. option::  desc_forces (logical)
+
+  This key word controlls wheather the descriptors of forces are computed or not. When setting ``desc_forces=.true.``, please verify that descriptors of forces are implemented for the :ref:`descriptor<sec:descriptors>` that you choose.
+
+  Default is ``desc_forces=.false.``
+
+.. option::  write_desc (logical)
+
+  This key word activates writing descriptors into files. When using ``ml_type=-1``, consider setting ``write_desc=.true.``
+
+  Default is ``write_desc=.false.``
+
+**Example:** typical commands for the task of computing descriptors (e.g. for structural analysis)
+
+.. code-block:: fortran
+
+   ml_type=-1
+   write_desc=.true.
+   desc_forces=.false.
+
+More examples can be found in the :ref:`Examples section<ex:write-desc>`
+
+
+
+.. _`sec: regression`:
+
+Regression models  
+=================
+
+
+Type of regression
+^^^^^^^^^^^^^^^^^^
+
+
+The following options are relevant for the ``ml_type=0`` regression models with basis functions (linear in parameters models) namely:
+linear (LML), quandratic (QNML, QML) or polynomial chaos. 
+The kernel regressions require separate treatment threfore the options for kernel models are presented in separate 
+section :ref:`Kernel section<sec:kernel>`. 
+
+.. option::  mld_order (integer)
+
+   Define the type of regression the descriptor space: 
+
+   - ``mld_order = 1`` this enable a linear fit (known also as LML) and will gives :math:`1+D` parameters
+
+   - ``mld_order = 2`` this enable a quandratic fit and will gives  :math:`1 + D + D^2` parameters. In this case 
+     there is a supplementary choice about the type of quandratic model by the option  ``snap_type_quadratic``.  
+     About the quadratic fit see Goryaeva et al. 2021 for more details. 
+
+   - ``mld_order = 3``  this enable a polynomial chaos type of fitting. Two others parameters should be set: ``polyc_n_poly`` 
+     and ``polyc_n_hermite``. The number of paramters is very large given by this formulae: 
+     1 + ``polyc_n_hermite`` :math:`\times D` + ``polyc_n_hermite`` :math:`\times D^2` + 
+     + ... + ``polyc_n_hermite`` :math:`\times D` :sup:`polyc\_n\_poly`  
+
+   Default is ``mld_order = 1``.
+
+.. option::  mld_type_quadratic (integer)
+
+   The type of quadratic fit. For
+   the case 1 the solution is preconditionned by the linear fit i.e.
+   the first 1 + :math:`D` are exactelly set to the LML solution and
+   only the remaining :math:`D^2` parameters are fitted quadratically.
+   For the case 2 the full quadratic solution is provided, all the
+   parameters are fitted without preconditionning. Shortly speaking   
+   ``mld_type_quadratic=1`` is for  QNML and ``mld_type_quadratic=2`` is for QML.
+   See Goryaeva et al. 2021 for more details. 
+
+   Default is ``mld_type_quadratic = 1``.
+
+.. option:: polyc_n_poly (integer)
+
+   active for polynomial chaos regression i.e. ``mld_order=3``. Is the order of polynomial degree.
+
+   Default is ``polyc_n_poly=3``.  
+
+.. option::  polyc_n_hermite (integer) 
+   
+    The maxiumum degree for Hermite polynomials for the polynomial chaos regression. ``Milady`` handle Hermite basis up to the 4 :sup:`th` order.      
+
+    Default is ``polyc_n_hermite=2``.
+
+
+Solving algorithm
+^^^^^^^^^^^^^^^^^
+
+
+.. option::  mld_fit_type (integer)
+
+  The type of algorithm used in order to
+  solve least square (LS) problem :math:`\mathbf{A} \beta= \mathbf{b}`.
+  We recommend without any hesitation ``mld_fit_type = 4``. 
+
+  :math:`\mathbf{A}` is :math:`M \times D` matrix, :math:`M` being the
+  number of observations and :math:`D` the number of parameters (in the
+  case of linear ML the dimension of descriptor + 1), :math:`\beta` the
+  parameter matrix :math:`D \times 1` and :math:`\mathbf{b}` the
+  observations matrix :math:`M \times 1`. Actually in the ``MiLaDy``
+  implementation we build :math:`\mathbf{Amat}` matrix that has the
+  dimensions :math:`d \times m` being in fact :math:`\mathbf{A}^T`
+  (with the notation used for this documentation):  
+
+  #. ``mld_fit_type=0``: home made solver  based on LU / QR decomposition for general matrix. 
+     There is no any particular assuption for the size or rank of  :math:`\mathbf{A}`  matrix. 
+     All the cases :math:`M > D`, :math:`M < D` and :math:`M = D` are treated. 
+
+  #. ``mld_fit_type=1``: solution based on QR
+     decomposition for serial and ScaLapack version.  
+     Adapted for full rank matrix :math:`\mathbf{A}` and use the assumption
+     that :math:`\textrm{rank}(A) = \min(M,D)`, in other words,
+     :math:`A` has full rank. 
+     In serial version,  if :math:`\mathbf{A}` is not full rank the inversion will stop with a
+     error. Uses a QR or LQ factorization of :math:`\mathbf{A}`. 
+
+  #. ``mld_fit_type=2``: **restricted only for advanced users** 
+     Solution with constraints. The constraints are of form
+     :math:`\mathbf{B}x=\mathbf{d}`. The matrix :math:`\mathbf{B}` and
+     the vector :math:`\mathbf{d}` are filled with all the data (input
+     and target for energy, force or stress) contained in the class
+     fixed by ``snap_class_constraints``.   
+
+  #. ``mld_fit_type=3``: For serial version this is adapted for the general case when we 
+     may have :math:`\textrm{rank}(\mathbf{A}) < \min(M,D)`, in other words,
+     :math:`\mathbf{A}` may be rank-deficient, we seek the minimum norm
+     least squares solution :math:`\beta` which minimizes both
+     :math:`\left| \beta \right|^2` and
+     :math:`\left| b - A \beta \right|^2`. With this option a rank 
+     estimation is possible. The ScaLapack version uses Cholesky decomposition for symmetric and 
+     positive definite matrix consequnetly sometimes should be avoided.   
+
+     .. warning:: 
+        Avoid this solution for Scalapack version. Is very likely to obtain weird results in the 
+        most favorable cases but probably you will have segmetation fault and or ``NaN`` as 
+        parameters :)).      
+
+  #. ``mld_fit_type=4``: In the general case when we may have
+     :math:`\textrm{rank}(\mathbf{A}) < \min(M,D)`, in other words,
+     :math:`\mathbf{A}` may be rank-deficient, we seek the minimum norm
+     least squares solution :math:`\beta` which minimizes both
+     :math:`\left| \beta \right|^2` and
+     :math:`\left| b - A \beta \right|^2`. Is the slowest but is by far mathematically 
+     most complete solution based on SVD decomposition. 
+     With this option a rank estimation (via SVD and driven by the option ``svd_rcond``).
+
+Default is ``mld_fit_type=4``.
+
+
+
+.. option::  svd_rcond (real)
+
+   The  value of the limit from which the singular eigenvalues of the design 
+   matrix :math:`(\mathbf{A})` (or any matrix) are zero. Any eigenvalue lower that this limit is 
+   treated as zero. Obviously the value of ``svd_rcond`` has an impact on 
+   the :math:`\textrm{rank}(\mathbf{A})`. 
+   If a negative value is choosen then ``Milady`` fix ``svd_rcond=100.d0*epsilon(1.d0)`` where 
+   epsilon is the Lapack machine precision function (around ``1.d-15`` in most of the cases).   
+
+   Default is ``svd_rcond=-1``.
+
+
+.. option::  snap_class_constraints (character)
+
+   The class that imposes the constraints on fit. Is active only if
+   ``mld_fit_type=2``. All the configuration mentioned in this class
+   will fill the constraints matrix :math:`\mathbf{B}` and the target
+   vector :math:`\mathbf{d}`.
+
+   Default is ``"07"``.
+
+.. option::  write_design_matrix (logical)
+
+   Dump the design matrix, which contains the descriptors (energy, force and stress if 
+   mentioned in  ``db_model.in``) and
+   the weigths. The design matrix is writen design in file ``design_matrix.dat``.
+   This matrix has the dimension ``number_of_data`` :math:`\times` ``dim_desc``, where
+   number_of_data are the number of data points (energy, force or
+   stress) used to fit the potential and ``dim_desc`` is the dimension
+   of descriptor. And additional file ``design_matrix.info`` is written with information 
+   about the database used for trainning. 
+   
+   This option is active for normal trainning (``ml_type >= 0``).
+
+   .. warning:: 
+      The design matrix is written as the transpose of the matrix used internally by ``milady`` 
+  
+
+   **Format of the design_matrix.dat :**
+
+   -  The first 3 lines  are comments 
+   -  Then are ``number_of_data`` lines with ``dim_desc`` columns. 
+
+   **Format of the design_matrix.info :**
+
+   -  The first 5 lines are comments. 
+   -  Then there are ``number_of_data`` lines with ``4`` columns.
+   -  The first column is a tag that indicates whether the corresponding line comes from energy (1), force (2), or stress (3).
+   -  The second column gives the target value (energy, force, or stress) used for training.
+   -  The third column indicates the weight used for that data point in the loss function.
+   -  The fourth column indicates the source file of that data point.
+
+   Default ``write_design_matrix=.false.``
+
+
+Regularization and loss
+^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. option::  mld_regularization_type (integer)
+
+   #. ``mld_regularization_type``\ =0: no regularization
+
+   #. ``mld_regularization_type``\ =1: applies the regularized solution
+      of parameters, :math:`\mathbf{w}(\lambda_{krr})` found by the
+      Moore-Penrose inversion:
+
+      .. math:: \mathbf{w}(\lambda_{krr})= \left( \mathbf{A}^T \mathbf{A} + \lambda_{rr} \mathbf{I} \right)^{-1} \mathbf{A}^T \mathbf{y}
+
+      The properties of the logarithmic search grid of
+      :math:`\lambda_{krr}` are defined by the following parameters:
+
+      -  | ``real``, ``min_lambda_krr`` and ``max_lambda_krr`` the min
+           and max of the logarithmic grid. If one of them is negative
+           then an automatic grid with 21 points is set-up between
+           ``1.d-10`` and ``1.d+10``.
+         | Default ``min_lambda_krr =1.d-10`` and
+           ``max_lambda_krr =1.d+10``.
+
+      -  | ``integer``, ``n_values_lambda_krr`` the number of points on
+           grid.
+         | Default ``n_values_lambda_krr=21``
+
+   Default is ``0``.
+
+
+.. option:: type_of_loss (integer)
+
+   This option defines the type of the loss function. It can have values 1, 2 or 3.
+   The loss function has the following four terms:
+
+   .. math:: J(\mathbf{w}) = J_E(\mathbf{w}) + J_F(\mathbf{w}) + J_S(\mathbf{w}) + R(\mathbf{w}, \lambda) \, ,
+
+   for energy, forces, stress losses and regularization, respectively.
+
+   We have implemented three types of losses. Here are the details for each
+   of them. The energy part of loss:
+
+   .. math::
+
+      \begin{aligned}
+          J_E^1(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_E=1}^{M_E} \omega_{m_E}\left( E_{m_E} - \hat{E}_{m_E}(\mathbf{w})  \right)^2 \\
+          J_E^2(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_E=1}^{M_E} \frac{ \omega_{m_E}} {M_E} \left( E_{m_E} - \hat{E}_{m_E}(\mathbf{w})  \right)^2 \\
+          J_E^3(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_E=1}^{M_E} \frac{ \omega_{m_E}} {M_E} \left(
+             \frac{E_{m_E} - \hat{E}_{m_E}(\mathbf{w})}{N_{m_E}}  \right)^2\end{aligned}
+
+   where :math:`M_E` are the number of energy configuration included in the
+   train database whilst :math:`\omega_{m_E}` (the one which is defined in the ``db_model.in`` file) and :math:`N_{m_E}` are the
+   weights and the number of atoms of the :math:`m_E^{\textrm{th}}`
+   configuration.
+
+   In the case of forces:
+
+   .. math::
+
+      \begin{aligned}
+          J_F^1(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_F=1}^{M_F} \omega_{m_F}\left( f_{m_E} - \hat{f}_{m_E}(\mathbf{w})  \right)^2 \\
+          J_F^2(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_f=1}^{M_F} \frac{ \omega_{m_F}} {M_F} \left( f_{m_F} - \hat{f}_{m_F}(\mathbf{w})  \right)^2 \\
+          J_F^3(\mathbf{w}) & = & \frac{1}{2} \frac{1}{M_{F,S}} \sum_{s=1}^{M_{F,S}} \sum_{a=1}^{N_s} \frac{1}{3 N_{s}}
+          \left( f_{s,a} - \hat{f}_{s,a}(\mathbf{w}) \right)^2\end{aligned}
+
+   where :math:`\omega_{m_F}` is the weight of the
+   :math:`m_F^{\textrm{th}}` point in the forces database of a total of
+   :math:`M_F` datapoints. :math:`M_{F,S}` is the number of systems, which
+   contain forces that should be fitted, :math:`s` is some order nummber of
+   the system and :math:`N_s` is the the number of atoms in that :math:`s`
+   system.
+
+   In the case of stress:
+
+   .. math::
+
+      \begin{aligned}
+          J_S^1(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_S=1}^{M_S} \omega_{m_S}\left( \sigma_{m_S} - \hat{\sigma}_{m_S}(\mathbf{w})  \right)^2 \\
+          J_S^2(\mathbf{w}) & = & \frac{1}{2}
+             \sum_{m_S=1}^{M_S} \frac{ \omega_{m_S}} {M_S} \left( \sigma_{m_S} - \hat{\sigma}_{m_S}(\mathbf{w})  \right)^2 \\
+          J_F^3(\mathbf{w}) & = & \frac{1}{2} \frac{1}{M_{S,S}} \sum_{s=1}^{M_{S,S}} \sum_{\alpha=1}^{6} \frac{1}{6}
+          \left( \sigma_{s, \alpha} - \hat{\sigma}_{s, \alpha}(\mathbf{w}) \right)^2\end{aligned}
+
+   where the above notations have  the same meaning as in the case of forces. :math:`M_S` denotes the number of datapoints
+   of stress observables (6 points for each system).  :math:`M_{S,S}` denotes the number of systems that have stress information.
+   and :math:`\sigma_{s, \alpha}` is one component of the stress in the particular system :math:`s`.
+
+   Default is ``1``.
+
+
+.. option::  train_only (loginal)
+
+   Only the trainning is performed.
+   No tests at all. This option is tested only in the
+   case of ``ml_type=0``. target vector :math:`d`.
+
+   Default is ``.false.``.
+
+
+--- FILE: system.txt ---
+
+
+.. _`sec:atomicsys`:
+
+Atomic systems
+======================
+
+.. option::  fix_no_of_elements (integer)
+
+   The number of elements in the
+   input list. This list should be exhaustive and should contains all
+   the elements of the database. This number should be equal to the
+   numbers of chemical symbols (and correspondings weigths in
+   ``chemical_elements`` and ``weigth_per_element`` or ``weigth_per_element_3ch``)
+
+   Default ``no_of_elements=1``
+
+.. option::  chemical_elements (character(len=80))
+
+   The chemical symbols of the elements contained in the database. The elements should be
+   among the 109 elements of the periodic table. E.g. for there
+   elements should be like that: ``chemical_elements= ” Fe W Re ”``.
+   The custom weigths associated with those elements are defined in
+   ``weigth_per_element``.
+
+   Default ``chemical_elements= ” ”``
+
+.. option::  weighted (logical)
+
+   Take into accout the chemical type of atoms. It can be  ``weighted=.true.`` or
+   ``weighted=.false.``. If ``.true.`` the descriptors are built using the regular
+   geometric channel and a supplementary channel for descriptors both with exactelly
+   the same dimension. The chemical weights for atoms are controlled with the option
+   ``weight_per_element``  or ``weighted_auto``.
+
+   Default ``weighted= .false.``
+
+.. option::  weighted_3ch (logical)
+
+   Take into accout the chemical type of atoms: the 3rd channel. It can be  ``weighted_3ch=.true.`` or
+   ``weighted_3ch=.false.``. If ``.true.`` the descriptors are built using the regular
+   geometric channel, the second channel and a supplementary third channel.
+   The chemical weights for atoms are controlled with the option
+   ``weight_per_element_3ch``  or ``weighted_auto``.
+
+   Default ``weighted_3ch = .false.``
+
+
+.. option::  weighted_auto (logical)
+
+   If this option is valid ``.true.`` the chemical weights are chosen automatically by ``MILADY``
+   for  ``weight_per_element`` and ``weight_per_element_3ch``, if necessary. If this option is ``.true.``
+   the current value of   ``weight_per_element`` and ``weight_per_element_3ch`` are redefined with the default values.
+
+   For the second channel the ``weighted_auto=.true`` gives for the weigth for the species :math:`w_I` as:
+
+   .. math:: w_I^{\textrm{2nd ch}} = \frac{ \sqrt{m_I} \sqrt{N_{\textrm{all species} } } }{ \sqrt{ \sum_{J \in \textrm{all species}} m_J } }
+
+   For the third channel the ``weighted_auto=.true`` assign the weigth for the species :math:`w_I` as:
+
+   .. math:: w_I^{\textrm{3rd ch}} = \frac {Z_I N_{\textrm{all species} } } {\sum_{J \in \textrm{all species}}  Z_J}
+
+   Default ``weighted_auto = .true.``
+
+
+.. option::  chemical_elements_invisible (character(len=80))
+
+   The chemical symbols of the elements that will be invisible by the
+   other atoms i.e. any information of then will not be included in
+   the computation of descriptors.
+
+   Default ``chemical_elements_invisible= ” ”``
+
+.. option::  weight_per_element (character(len=80))
+
+   The weigths associated with the chemical elements defined in the list
+   ``chemical_elements``.
+
+   This list should be formatted as:
+   ``weight_per_element= ” 1.0 2.0 3.0 ”`` i.e. for the example given
+   in the examle given above ``chemical_elements= ” Fe W Re ”`` the
+   weigths are ``1.0``, ``2.0`` and ``3.0``, respectivelly.
+
+   For the particular case when the ``weight_per_element= ” ”`` is empty list
+   the weight of the atoms of :math:`i^{th}` type are automatically
+   put proportional to square root of the mass of that type :math:`\sqrt(m_i)`
+   (see ``weighted_auto`` keyword section for the exact formulae).
+
+
+   Default ``weight_per_element= " "``
+
+
+.. option::  weight_per_element_3ch (character(len=80))
+
+   The weigths associated with the chemical elements defined in the list
+   ``chemical_elements``. These weights define the accuracy of the 3rd channel.
+
+   This list should be formatted anf follows exactelly the same rules as
+   ``weight_per_element``.
+
+   For the particular case when the ``weight_per_element_3ch= ” ”`` is empty list
+   the weight of the atoms of :math:`i^{th}` type are automatically proportional
+   to the atomic number  :math:`Z_i` (see ``weighted_auto`` keyword section for the exact formulae)
+
+   Default ``weight_per_element_3ch= " "``
+
+
+--- FILE: weight.txt ---
+
+
+.. _`sec:hyper`:
+
+Optimization of hyperparameters
+===============================
+
+.. warning::
+
+  This option is not fully tested.  In case of weird results, you can share your experience and report an issue.
+
+The weights of the various components in the database can be optimized using a **genetic algorithm** through the following objective function:
+
+.. math::
+   J(\mathbf{w}) = f_e \textrm{MAE}_e (\mathbf{w})+ f_f \textrm{MAE}_f (\mathbf{w})+ f_s \textrm{MAE}_s(\mathbf{w})
+   :label: ga_opt
+
+MAE is the mean average error for energy, force, or stress, and :math:`f` is the multiplicative factor for each of them. 
+These multiplicative factors are provided by the user (see below in this section). 
+The optimization of database weights is activated through the
+``optimize_weights_db=.true.``. While the weights of chemical channels can be optimized by activation of the flag 
+``optimize_weights_chem=.true.``. Only one of them can be true, no crossed optimization for this ``Milady`` version. 
+The evolution of the objective function is monitorized in the file ``optimization_error.dat`` with the first column indicates 
+the call number, second: the objective function, third: :math:`MAE_e`, fourth: :math:`MAE_f` and fifth:  :math:`MAE_s`. 
+At the end, the best set of parameters which corresponds to the best optimization, with a minimum of the objective 
+function, is given as output. 
+
+.. option::  optimize_weights_db (logical)
+
+   You can activate or deactivate the optimization of weights :math:`w_E`, :math:`w_F`, and :math:`w_S` 
+   through a genetic algorithm. The initial and final values of these weights are indicated in 
+   the ``db_file`` (usually named ``db_model.in``). 
+   For more information, please refer to the section on  :ref:`Database files<sec:db-model>`. 
+   The :math:`l^{th}` line of ``db_model.in`` introduces three weights that will be 
+   optimized: :math:`w^l_e`, :math:`w^l_f`, and :math:`w^l_s`, which stand for the weights for energy, 
+   force, and stress, respectively. The maximum number of weights 
+   (the number of arguments of the genetic algorithm function) is equal to the number of lines 
+   in the DB file, ``db_model.in``, multiplied by three. 
+   However, this number can be lower if you use the option ``class_no_optimize_weights`` to exclude some lines. 
+   For example, if you put ``class_no_optimize_weights=" 02 06 "``, all the lines that 
+   belong to the classes ``02`` and ``06`` will be excluded from optimization.
+   
+   Default ``optimize_weights_db=.false.``
+
+
+.. option::  optimize_weights_chem (logical)
+
+   Activate or not the optimization of the weights (or colors) of atoms in each channel through 
+   genetical algorithm. The initial and final values of those weights are those selectioned in ``ml`` file. 
+   How to activate or not the multi-channel descriptors for multiple elements databases can be found in 
+   :ref:`Atomic systems<sec:atomicsys>`. The result of the optimization can be found at screen of in the file 
+   ``optimization_chemical.info``. 
+   
+   Default ``optimize_weights_chem=.false.``
+
+.. warning:: 
+
+  This options  ``optimize_weights_db`` and ``optimize_weights_chem`` cannot be true simultaneously. 
+
+
+.. option::  class_no_optimize_weights (character(len=90)) 
+
+   The classes (with the same names / numbers as in ``db_file``) for which the the
+   optimization through genetical algorithm is no activated . If there
+   are many classes, theirs names should be separated by space (see
+   the default value for an example)
+   This option is active only if ``optimize_weights=.true.``
+   Example: ``class_no_optimize_weights=" 02 06 "`` - no optimization
+   for the classes ``02`` and ``06``.
+   
+   Default: ``class_no_optimize_weights=" "``
+
+.. option::  optimize_ga_population (integer) 
+   
+   The size of the population of  genetical algorithm.
+   
+   Default ``optimize_ga_puplation=80``
+
+.. option::  max_iter_optimize_weights (integer) 
+   
+   The maximum number of optimization steps. The total number of optimization steps are 
+   given by: ``optimize_ga_puplation`` :math:`\times` ``max_iter_optimize_weights``
+   
+   Default: ``max_iter_optimize_weights=40``
+
+.. option::  factor_energy_error (real) 
+
+   The factor for energy in the
+   objective function :math:`f_e` in the
+   Eq. :math:numref:`ga_opt`.
+   
+   Default: ``force_energy_error=1.d0``
+
+.. option::  factor_force_error (real) 
+
+   The factor for force in the
+   objective function :math:`f_f` in the
+   Eq. :math:numref:`ga_opt`.
+
+   Default: ``force_force_error=1.d0``
+
+.. option::  factor_stress_error (real) 
+   
+   The factor for energy in the
+   objective function :math:`f_s` in the
+   Eq. :math:numref:`ga_opt`.
+   
+   Default: ``force_stress_error=1.d0``
+
+
+.. option::  optimize_weights_L1 (logical) 
+
+   The regularization is performed
+   by adding a :math:`L^1` function on the objective function from
+   Eq. :math:numref:`ga_opt` The weigths are optimized in the
+   same time as the ``lambda_krr`` regularizitation parameter. The new
+   objective function becomes:
+
+   .. math:: J(\mathbf{w}) = J(\mathbf{w}) + \lambda_{krr} \sum_k \left|  w_k \right|
+   
+   Default ``optimize_weights_L1=.false.``
+
+.. option::  optimize_weights_L2 (logical) 
+
+   The regularization is performed
+   by adding a :math:`L^2` function on the objective function from
+   Eq. :math:numref:`ga_opt`. The weigths are optimized in the
+   same time as the ``lambda_krr`` regularizitation parameter. The new
+   objective function becomes:
+
+   .. math:: J(\mathbf{w}) = J(\mathbf{w}) + \lambda_{krr} \sum_k \left|  w_k \right|^2
+
+   Default ``optimize_weights_L1=.false.``
+
+.. option::  optimize_weights_Le (logical) 
+
+   The regularization is performed
+   by adding a :math:`L^2` + :math:`L^1` function on the objective
+   function from Eq. :math:numref:`ga_opt`. The weigths are
+   optimized in the same time as the ``lambda_krr`` regularizitation
+   parameter. The new objective function becomes:
+
+   .. math:: J(\mathbf{w}) = J(\mathbf{w}) + \lambda_{krr} \sum_k \left|  w_k \right|^2 + \lambda_{krr} \sum_k \left|  w_k \right|
+   
+   Default ``optimize_weights_Le=.false.``
+
+
+
