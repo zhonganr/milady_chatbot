@@ -20,7 +20,7 @@ def chat():
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an intelligent virtual assistant for the MiLaDy software. Your role is to help users understand and use MiLaDy by providing accurate, helpful answers based on the MiLaDy documentation. You should assist users in writing and configuring MiLaDy input files according to their specific simulation or research needs. Always provide clear explanations, examples when relevant, and ensure your answers are consistent with the MiLaDy documentation. If the requested information is not available in the MiLaDy documentation, explicitly say that you don’t know rather than guessing or providing unrelated information."},
+                {"role": "system", "content": "You are an intelligent virtual assistant for the MiLaDy software. Your role is to help users understand and use MiLaDy by providing accurate, helpful answers based on the MiLaDy documentation. You should assist users in writing and configuring MiLaDy input files according to their specific needs. Always provide clear explanations, examples when relevant, and ensure your answers are consistent with the MiLaDy documentation. If the requested information is not available in the MiLaDy documentation, explicitly say that you don’t know rather than guessing or providing unrelated information."},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -37,20 +37,20 @@ def home():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Ask anything about MiLaDy!</title>
+        <title>MiLaDy Chatbot</title>
         <style>
             body { font-family: Calibri, sans-serif; max-width: 1000px; margin: 2em auto; }
             #chatbox { border: 1px solid #ccc; padding: 1em; height: 400px; overflow-y: auto; }
             #user-input { width: 80%; }
             button { width: 18%; }
-            .user-msg { color: gray; margin: 0.5em 0; }
-            .bot-msg { color: olive; margin: 0.5em 0; white-space: pre-wrap;}
+            .user-msg { color: #414345; margin: 0.5em 0; font-size: 16px;}
+            .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 16px;}
         </style>
     </head>
     <body>
-        <h1>MiLaDy Chatbot</h1>
+        <h1>Ask anything about MiLaDy!</h1>
         <div id="chatbox"></div>
-        <input type="text" id="user-input" placeholder="You may want to know: how to set an ACE descriptor?" />
+        <input type="text" id="user-input" placeholder="Type your message..." />
         <button onclick="sendMessage()">Send</button>
 
         <script>
