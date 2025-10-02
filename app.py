@@ -44,6 +44,13 @@ def home():
             #user-input { width: 80%; }
             #user-input::placeholder {font-size: 18px; }
             button { width: 18%; ; font-size: 18px; cursor: pointer; }
+            #user-input, button {
+                font-size: 18px;          /* Larger text */
+                padding: 10px;            /* Same padding for both */
+                height: 50px;             /* Optional: explicitly same height */
+                box-sizing: border-box;   /* Include padding in height calculation */
+                vertical-align: middle;   /* Align nicely */
+            }
             .user-msg { color: #414345; margin: 0.5em 0; font-size: 18px;}
             .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 18px;}
         </style>
