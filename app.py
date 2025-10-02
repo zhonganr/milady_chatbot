@@ -42,9 +42,10 @@ def home():
             body { font-family: Calibri, sans-serif; max-width: 1000px; margin: 2em auto; }
             #chatbox { border: 1px solid #ccc; padding: 1em; height: 400px; overflow-y: auto; }
             #user-input { width: 80%; }
-            button { width: 18%; ; font-size: 20px; padding: 10px 0; cursor: pointer; }
-            .user-msg { color: #414345; margin: 0.5em 0; font-size: 20px;}
-            .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 20px;}
+            #user-input::placeholder {font-size: 18px; }
+            button { width: 18%; ; font-size: 18px; cursor: pointer; }
+            .user-msg { color: #414345; margin: 0.5em 0; font-size: 18px;}
+            .bot-msg { color: #003366; margin: 0.5em 0; white-space: pre-wrap; font-size: 18px;}
         </style>
     </head>
     <body>
